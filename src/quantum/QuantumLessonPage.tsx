@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { QuantumCanvas, QuantumScene, sampleInterference } from './QuantumCanvas'
+import { getSavedStep, markLessonCompleted, saveStep } from './progress'
 import './quantum.css'
+
+const LESSON_SLUG = 'the-quantum-rules-change'
 
 const steps: { label: string; scene: QuantumScene }[] = [
   { label: 'Scale', scene: 'scale' },
@@ -27,16 +30,12 @@ export function QuantumLessonPage() {
   const [answerState, setAnswerState] = useState<'idle' | 'correct' | 'wrong'>('idle')
 
   useEffect(() => {
-    try {
-      const saved = Number(window.localStorage.getItem('quantum-quest-step') || '0')
-      if (saved > 0 && saved < steps.length - 1) setStep(saved)
-    } catch {
-      // Device-local progress is optional.
-    }
+    const saved = getSavedStep(LESSON_SLUG)
+    if (saved > 0 && saved < steps.length - 1) setStep(saved)
   }, [])
 
   useEffect(() => {
-    try { window.localStorage.setItem('quantum-quest-step', String(step)) } catch { /* optional */ }
+    saveStep(LESSON_SLUG, step)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [step])
 
@@ -49,7 +48,7 @@ export function QuantumLessonPage() {
   const checkAnswer = () => {
     if (answer === 1) {
       setAnswerState('correct')
-      try { window.localStorage.setItem('quantum-quest-complete', 'true') } catch { /* optional */ }
+      markLessonCompleted(LESSON_SLUG)
     } else if (answer !== null) {
       setAnswerState('wrong')
     }
@@ -164,7 +163,10 @@ export function QuantumLessonPage() {
           <div><span>✓</span><p>Alternatives can interfere when no measurement distinguishes their paths.</p></div>
           <div><span>✓</span><p>The theory predicts probability patterns; each measurement gives one result.</p></div>
         </div>
-        <button className="qa-primary" onClick={() => navigate('/')}>Return to course map →</button>
+        <div className="qa-complete-actions">
+          <button className="qa-primary" onClick={() => navigate('/classical-particles-and-waves')}>Start next lesson →</button>
+          <Link to="/" className="qa-text-link">Course map</Link>
+        </div>
       </>
     )
   }, [answer, answerState, dualityMode, measurement, navigate, observed, photonHits.length, scaleIndex, step])

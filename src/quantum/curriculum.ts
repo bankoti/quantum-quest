@@ -2,6 +2,7 @@ export interface QuantumLesson {
   title: string
   description: string
   minutes: number
+  slug?: string
   playable?: boolean
 }
 
@@ -22,12 +23,12 @@ export const QUANTUM_STAGES: QuantumStage[] = [
     description: 'Build the intuitions that make quantum behavior feel surprising, but not mysterious.',
     accent: '#22d3ee',
     lessons: [
-      { title: 'The quantum rules change', description: 'Meet scale, probability, waves, and measurement through experiments.', minutes: 9, playable: true },
-      { title: 'Classical particles and waves', description: 'See the two mental models quantum objects refuse to choose between.', minutes: 7 },
-      { title: 'Energy comes in chunks', description: 'Discover why nature sometimes uses a staircase instead of a ramp.', minutes: 8 },
-      { title: 'Light becomes photons', description: 'Follow one packet of light from emission to detection.', minutes: 7 },
-      { title: 'The double-slit experiment', description: 'Build the most important experiment in quantum physics.', minutes: 10 },
-      { title: 'Foundations checkpoint', description: 'Connect the first clues into one usable mental model.', minutes: 6 },
+      { title: 'The quantum rules change', description: 'Meet scale, probability, waves, and measurement through experiments.', minutes: 9, slug: 'the-quantum-rules-change', playable: true },
+      { title: 'Classical particles and waves', description: 'See the two mental models quantum objects refuse to choose between.', minutes: 7, slug: 'classical-particles-and-waves', playable: true },
+      { title: 'Energy comes in chunks', description: 'Discover why nature sometimes uses a staircase instead of a ramp.', minutes: 8, slug: 'energy-comes-in-chunks', playable: true },
+      { title: 'Light becomes photons', description: 'Follow one packet of light from emission to detection.', minutes: 7, slug: 'light-becomes-photons', playable: true },
+      { title: 'The double-slit experiment', description: 'Build the most important experiment in quantum physics.', minutes: 10, slug: 'double-slit-experiment', playable: true },
+      { title: 'Foundations checkpoint', description: 'Connect the first clues into one usable mental model.', minutes: 6, slug: 'foundations-checkpoint', playable: true },
     ],
   },
   {
@@ -108,11 +109,8 @@ export const QUANTUM_STAGES: QuantumStage[] = [
 
 export const QUANTUM_LESSON_COUNT = QUANTUM_STAGES.reduce((sum, stage) => sum + stage.lessons.length, 0)
 export const QUANTUM_LESSON_PATH = '/the-quantum-rules-change'
+export const FOUNDATION_LESSONS = QUANTUM_STAGES[0].lessons.filter(lesson => lesson.slug)
 
-export function quantumCompleted(): boolean {
-  try {
-    return window.localStorage.getItem('quantum-quest-complete') === 'true'
-  } catch {
-    return false
-  }
+export function lessonPath(slug: string): string {
+  return `/${slug}`
 }

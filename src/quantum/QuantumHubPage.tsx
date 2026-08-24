@@ -1,21 +1,28 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { QUANTUM_LESSON_COUNT, QUANTUM_LESSON_PATH, QUANTUM_STAGES, quantumCompleted } from './curriculum'
+import { FOUNDATION_LESSONS, lessonPath, QUANTUM_LESSON_COUNT, QUANTUM_STAGES } from './curriculum'
+import { getCompletedLessons, getNextFoundationLesson } from './progress'
 import './quantum.css'
 
 export function QuantumHubPage() {
-  const [completed, setCompleted] = useState(false)
+  const [completed, setCompleted] = useState<string[]>([])
 
   useEffect(() => {
-    setCompleted(quantumCompleted())
+    setCompleted(getCompletedLessons())
   }, [])
+
+  const completeSet = new Set(completed)
+  const nextLesson = getNextFoundationLesson(completed)
+  const nextIndex = FOUNDATION_LESSONS.findIndex(lesson => lesson.slug === nextLesson.slug)
+  const foundationsComplete = FOUNDATION_LESSONS.every(lesson => lesson.slug && completeSet.has(lesson.slug))
+  const nextPath = lessonPath(nextLesson.slug!)
 
   return (
     <div className="qa-page">
       <nav className="qa-site-nav" aria-label="Quantum course navigation">
         <Link to="/" className="qa-brand"><span aria-hidden="true">◉</span> Quantum Quest</Link>
-        <span className="qa-progress">{completed ? 1 : 0}/{QUANTUM_LESSON_COUNT} lessons</span>
+        <span className="qa-progress">{completed.length}/{QUANTUM_LESSON_COUNT} lessons</span>
       </nav>
 
       <header className="qa-hero">
@@ -23,8 +30,8 @@ export function QuantumHubPage() {
           <p className="qa-eyebrow">Zero to hero, one experiment at a time</p>
           <h1>Build a quantum universe you can actually see.</h1>
           <p>Start with ordinary intuition, break it carefully through experiments, then rebuild your understanding around states, probability, atoms, entanglement, and computation.</p>
-          <Link className="qa-primary qa-large" to={QUANTUM_LESSON_PATH}>{completed ? 'Replay first journey' : 'Start first journey'} <span aria-hidden="true">→</span></Link>
-          <div className="qa-hero-meta"><span>9 minutes</span><span>6 discoveries</span><span>No math required</span></div>
+          <Link className="qa-primary qa-large" to={nextPath}>{foundationsComplete ? 'Review foundations' : completed.length ? 'Continue your journey' : 'Start first journey'} <span aria-hidden="true">→</span></Link>
+          <div className="qa-hero-meta"><span>6 interactive lessons</span><span>20+ live models</span><span>No math required</span></div>
         </motion.div>
         <div className="qa-atom-visual" aria-label="Animated atomic state model">
           <div className="qa-atom-core"><i /></div>
@@ -50,10 +57,10 @@ export function QuantumHubPage() {
         </div>
       </section>
 
-      <Link to={QUANTUM_LESSON_PATH} className="qa-next">
-        <div className="qa-next-index"><span>{completed ? 'Completed' : 'Recommended next'}</span><strong>01</strong></div>
-        <div><p className="qa-eyebrow">Foundations</p><h2>The quantum rules change</h2><p>Move from human scale to one-photon interference and build your first working quantum mental model.</p></div>
-        <span className="qa-next-action">{completed ? 'Replay' : 'Begin'} →</span>
+      <Link to={nextPath} className="qa-next">
+        <div className="qa-next-index"><span>{foundationsComplete ? 'Stage complete' : 'Recommended next'}</span><strong>{String(nextIndex + 1).padStart(2, '0')}</strong></div>
+        <div><p className="qa-eyebrow">Foundations</p><h2>{nextLesson.title}</h2><p>{nextLesson.description}</p></div>
+        <span className="qa-next-action">{completeSet.has(nextLesson.slug!) ? 'Replay' : 'Begin'} →</span>
       </Link>
 
       <div className="qa-curriculum">
@@ -69,10 +76,11 @@ export function QuantumHubPage() {
               <div className="qa-lesson-grid">
                 {stage.lessons.map((lesson, lessonIndex) => {
                   const number = String(previousLessons + lessonIndex + 1).padStart(2, '0')
-                  if (lesson.playable) {
+                  const lessonComplete = Boolean(lesson.slug && completeSet.has(lesson.slug))
+                  if (lesson.playable && lesson.slug) {
                     return (
-                      <Link className="qa-lesson-card qa-playable" key={lesson.title} to={QUANTUM_LESSON_PATH}>
-                        <div className="qa-card-top"><span>{completed ? '✓' : number}</span><span className="qa-status">{completed ? 'Complete' : 'Available'}</span></div>
+                      <Link className="qa-lesson-card qa-playable" key={lesson.title} to={lessonPath(lesson.slug)}>
+                        <div className="qa-card-top"><span>{lessonComplete ? '✓' : number}</span><span className="qa-status">{lessonComplete ? 'Complete' : 'Available'}</span></div>
                         <h3>{lesson.title}</h3><p>{lesson.description}</p>
                         <div className="qa-card-meta"><span>{lesson.minutes} min</span><span>→</span></div>
                       </Link>
