@@ -38,12 +38,12 @@ export const QUANTUM_STAGES: QuantumStage[] = [
     description: 'Turn the strange observations into a compact way of predicting what can happen.',
     accent: '#a78bfa',
     lessons: [
-      { title: 'The wavefunction', description: 'Treat it as a map of possibilities before meeting the equation.', minutes: 8 },
-      { title: 'Superposition', description: 'Understand how alternatives combine and interfere.', minutes: 8 },
-      { title: 'Measurement and collapse', description: 'Separate the smooth prediction from the single observed result.', minutes: 9 },
-      { title: 'The uncertainty principle', description: 'See why a narrow position needs a broad range of momenta.', minutes: 9 },
-      { title: 'States, bases, and amplitudes', description: 'Build the vocabulary used across all quantum systems.', minutes: 10 },
-      { title: "Schrodinger's equation", description: 'Read the equation as a story of how possibilities evolve.', minutes: 10 },
+      { title: 'The wavefunction', description: 'Treat it as a map of possibilities before meeting the equation.', minutes: 8, slug: 'the-wavefunction', playable: true },
+      { title: 'Superposition', description: 'Understand how alternatives combine and interfere.', minutes: 8, slug: 'superposition', playable: true },
+      { title: 'Measurement and collapse', description: 'Separate the smooth prediction from the single observed result.', minutes: 9, slug: 'measurement-and-collapse', playable: true },
+      { title: 'The uncertainty principle', description: 'See why a narrow position needs a broad range of momenta.', minutes: 9, slug: 'uncertainty-principle', playable: true },
+      { title: 'States, bases, and amplitudes', description: 'Build the vocabulary used across all quantum systems.', minutes: 10, slug: 'states-bases-and-amplitudes', playable: true },
+      { title: "Schrodinger's equation", description: 'Read the equation as a story of how possibilities evolve.', minutes: 10, slug: 'schrodingers-equation', playable: true },
     ],
   },
   {
@@ -110,7 +110,12 @@ export const QUANTUM_STAGES: QuantumStage[] = [
 export const QUANTUM_LESSON_COUNT = QUANTUM_STAGES.reduce((sum, stage) => sum + stage.lessons.length, 0)
 export const QUANTUM_LESSON_PATH = '/the-quantum-rules-change'
 export const FOUNDATION_LESSONS = QUANTUM_STAGES[0].lessons.filter(lesson => lesson.slug)
+export const PLAYABLE_LESSONS = QUANTUM_STAGES.flatMap(stage => stage.lessons).filter(lesson => lesson.slug && lesson.playable)
 
 export function lessonPath(slug: string): string {
   return `/${slug}`
+}
+
+export function stageForLesson(slug: string) {
+  return QUANTUM_STAGES.find(stage => stage.lessons.some(lesson => lesson.slug === slug))
 }

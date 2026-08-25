@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { FOUNDATION_LESSONS, lessonPath, QUANTUM_LESSON_COUNT, QUANTUM_STAGES } from './curriculum'
-import { getCompletedLessons, getNextFoundationLesson } from './progress'
+import { lessonPath, PLAYABLE_LESSONS, QUANTUM_LESSON_COUNT, QUANTUM_STAGES, stageForLesson } from './curriculum'
+import { getCompletedLessons, getNextPlayableLesson } from './progress'
 import './quantum.css'
 
 export function QuantumHubPage() {
@@ -10,12 +10,14 @@ export function QuantumHubPage() {
 
   useEffect(() => {
     setCompleted(getCompletedLessons())
+    window.scrollTo({ top: 0, behavior: 'auto' })
   }, [])
 
   const completeSet = new Set(completed)
-  const nextLesson = getNextFoundationLesson(completed)
-  const nextIndex = FOUNDATION_LESSONS.findIndex(lesson => lesson.slug === nextLesson.slug)
-  const foundationsComplete = FOUNDATION_LESSONS.every(lesson => lesson.slug && completeSet.has(lesson.slug))
+  const nextLesson = getNextPlayableLesson(completed)
+  const nextIndex = PLAYABLE_LESSONS.findIndex(lesson => lesson.slug === nextLesson.slug)
+  const availableJourneyComplete = PLAYABLE_LESSONS.every(lesson => lesson.slug && completeSet.has(lesson.slug))
+  const nextStage = stageForLesson(nextLesson.slug!)
   const nextPath = lessonPath(nextLesson.slug!)
 
   return (
@@ -30,8 +32,8 @@ export function QuantumHubPage() {
           <p className="qa-eyebrow">Zero to hero, one experiment at a time</p>
           <h1>Build a quantum universe you can actually see.</h1>
           <p>Start with ordinary intuition, break it carefully through experiments, then rebuild your understanding around states, probability, atoms, entanglement, and computation.</p>
-          <Link className="qa-primary qa-large" to={nextPath}>{foundationsComplete ? 'Review foundations' : completed.length ? 'Continue your journey' : 'Start first journey'} <span aria-hidden="true">→</span></Link>
-          <div className="qa-hero-meta"><span>6 interactive lessons</span><span>20+ live models</span><span>No math required</span></div>
+          <Link className="qa-primary qa-large" to={nextPath}>{availableJourneyComplete ? 'Review the journey' : completed.length ? 'Continue your journey' : 'Start first journey'} <span aria-hidden="true">→</span></Link>
+          <div className="qa-hero-meta"><span>12 interactive lessons</span><span>40+ live models</span><span>No heavy math</span></div>
         </motion.div>
         <div className="qa-atom-visual" aria-label="Animated atomic state model">
           <div className="qa-atom-core"><i /></div>
@@ -58,8 +60,8 @@ export function QuantumHubPage() {
       </section>
 
       <Link to={nextPath} className="qa-next">
-        <div className="qa-next-index"><span>{foundationsComplete ? 'Stage complete' : 'Recommended next'}</span><strong>{String(nextIndex + 1).padStart(2, '0')}</strong></div>
-        <div><p className="qa-eyebrow">Foundations</p><h2>{nextLesson.title}</h2><p>{nextLesson.description}</p></div>
+        <div className="qa-next-index"><span>{availableJourneyComplete ? 'Journey complete' : 'Recommended next'}</span><strong>{String(nextIndex + 1).padStart(2, '0')}</strong></div>
+        <div><p className="qa-eyebrow">{nextStage?.shortTitle}</p><h2>{nextLesson.title}</h2><p>{nextLesson.description}</p></div>
         <span className="qa-next-action">{completeSet.has(nextLesson.slug!) ? 'Replay' : 'Begin'} →</span>
       </Link>
 

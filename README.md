@@ -1,6 +1,6 @@
 # Quantum Quest
 
-A visual, interactive course for learning quantum physics from first principles. The course includes a 35-lesson roadmap and a complete six-lesson foundations stage covering scale, classical models, quantized energy, photons, the double-slit experiment, probability, and measurement.
+A visual, interactive course for learning quantum physics from first principles. The course includes a 35-lesson roadmap and 12 complete lessons across Foundations and Quantum Language, covering scale, classical models, quantized energy, photons, wavefunctions, superposition, measurement, uncertainty, states, bases, amplitudes, and Schrödinger's equation.
 
 ## Run locally
 

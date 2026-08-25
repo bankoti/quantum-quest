@@ -1,4 +1,4 @@
-import { FOUNDATION_LESSONS } from './curriculum'
+import { PLAYABLE_LESSONS } from './curriculum'
 
 const COMPLETED_KEY = 'quantum-quest-completed-lessons'
 const STEP_PREFIX = 'quantum-quest-step:'
@@ -19,7 +19,7 @@ export function getCompletedLessons(): string[] {
   let completed: string[] = []
   try {
     const saved = JSON.parse(local.getItem(COMPLETED_KEY) || '[]')
-    const knownLessons = new Set(FOUNDATION_LESSONS.map(lesson => lesson.slug))
+    const knownLessons = new Set(PLAYABLE_LESSONS.map(lesson => lesson.slug))
     if (Array.isArray(saved)) completed = [...new Set(saved.filter(value => typeof value === 'string' && knownLessons.has(value)))]
   } catch {
     completed = []
@@ -53,7 +53,7 @@ export function saveStep(slug: string, step: number): void {
   storage()?.setItem(`${STEP_PREFIX}${slug}`, String(step))
 }
 
-export function getNextFoundationLesson(completed = getCompletedLessons()) {
+export function getNextPlayableLesson(completed = getCompletedLessons()) {
   const completeSet = new Set(completed)
-  return FOUNDATION_LESSONS.find(lesson => lesson.slug && !completeSet.has(lesson.slug)) ?? FOUNDATION_LESSONS[0]
+  return PLAYABLE_LESSONS.find(lesson => lesson.slug && !completeSet.has(lesson.slug)) ?? PLAYABLE_LESSONS[0]
 }

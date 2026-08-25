@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { FoundationCanvas, sampleBands } from './FoundationCanvas'
-import { ConceptQuestion, FoundationLesson, getFoundationLesson } from './foundationLessons'
+import { FoundationScene, ConceptQuestion, FoundationLesson } from './foundationLessons'
+import { LanguageCanvas } from './LanguageCanvas'
+import { LanguageScene } from './languageLessons'
+import { getInteractiveLesson } from './interactiveLessons'
 import { lessonPath } from './curriculum'
 import { getSavedStep, markLessonCompleted, saveStep } from './progress'
 import './quantum.css'
@@ -14,6 +17,12 @@ const lessonDefaults: Record<string, { value: number; mode: string }> = {
   'light-becomes-photons': { value: 3, mode: 'stream' },
   'double-slit-experiment': { value: 0, mode: 'two' },
   'foundations-checkpoint': { value: 50, mode: 'map' },
+  'the-wavefunction': { value: 50, mode: 'amplitude' },
+  superposition: { value: 50, mode: 'z' },
+  'measurement-and-collapse': { value: 50, mode: '0' },
+  'uncertainty-principle': { value: 50, mode: 'position' },
+  'states-bases-and-amplitudes': { value: 25, mode: 'z' },
+  'schrodingers-equation': { value: 50, mode: 'free' },
 }
 
 const controlDefaults: Record<string, number> = {
@@ -26,6 +35,29 @@ const controlDefaults: Record<string, number> = {
   color: 45,
   photoelectric: 35,
   phase: 0,
+  'packet-center': 50,
+  'wave-phase': 0,
+  'state-balance': 50,
+  'superposition-phase': 0,
+  'prepare-probability': 65,
+  'uncertainty-width': 50,
+  'wave-components': 5,
+  'uncertainty-view': 50,
+  'state-angle': 25,
+  'amplitude-phase': 0,
+  'evolution-speed': 50,
+  'tunnel-energy': 45,
+}
+
+const controlModeDefaults: Record<string, string> = {
+  'model-switch': 'particle',
+  'energy-mode': 'continuous',
+  'wave-view': 'amplitude',
+  'basis-switch': 'z',
+  'uncertainty-view': 'position',
+  'basis-choice': 'z',
+  'potential-shape': 'free',
+  'equation-part': 'both',
 }
 
 function RangeControl({ label, value, min, max, onChange, low, high }: { label: string; value: number; min: number; max: number; onChange: (value: number) => void; low: string; high: string }) {
@@ -135,6 +167,51 @@ function LessonControls({ lesson, control, value, mode, hits, active, pulse, ans
     </button>
   )
 
+  if (control === 'packet-center') return <RangeControl label="Packet center" value={value} min={0} max={100} onChange={setValue} low="Left" high="Right" />
+  if (control === 'wave-view') return <Segmented label="Choose a wavefunction view" value={mode} onChange={setMode} options={[{ value: 'amplitude', label: 'Amplitude ψ', icon: '∿' }, { value: 'probability', label: 'Probability |ψ|²', icon: '▥' }]} />
+  if (control === 'wave-phase') return <RangeControl label="Global phase" value={value} min={0} max={100} onChange={setValue} low="0°" high="360°" />
+  if (control === 'state-balance') return <RangeControl label="Outcome 1 probability" value={value} min={0} max={100} onChange={setValue} low="All |0〉" high="All |1〉" />
+  if (control === 'superposition-phase') return <RangeControl label="Relative phase" value={value} min={0} max={100} onChange={setValue} low="Reinforce" high="One full turn" />
+  if (control === 'basis-switch') return <Segmented label="Choose a measurement basis" value={mode} onChange={setMode} options={[{ value: 'z', label: 'Z basis', icon: '↕' }, { value: 'x', label: 'X basis', icon: '↔' }]} />
+  if (control === 'prepare-probability') return <RangeControl label="Probability of outcome 1" value={value} min={5} max={95} onChange={setValue} low="Mostly 0" high="Mostly 1" />
+  if (control === 'measurement-lab') {
+    const sample = () => Math.random() < value / 100 ? 1 : 0
+    return (
+      <>
+        <div className="qa-action-row">
+          <button className="qa-secondary" onClick={() => setHits(current => [...current, sample()].slice(-300))}>Measure once</button>
+          <button className="qa-primary" onClick={() => setHits(current => [...current, ...Array.from({ length: 50 }, sample)].slice(-300))}>Measure 50</button>
+          <button className="qa-icon-button" title="Reset measurements" aria-label="Reset measurements" onClick={() => setHits([])}>↺</button>
+        </div>
+        <p className={`qa-hint ${hits.length ? 'qa-success' : ''}`}>{hits.length ? `${hits.length} outcomes recorded.` : 'Record at least one outcome to continue.'}</p>
+      </>
+    )
+  }
+  if (control === 'collapse-lab') return (
+    <>
+      <div className="qa-action-row">
+        <button className="qa-primary" onClick={() => { setMode(Math.random() < 0.5 ? '0' : '1'); setActive(true); setPulse(current => current + 1) }}>Measure state</button>
+        <button className="qa-icon-button" title="Prepare the superposition again" aria-label="Prepare the superposition again" onClick={() => setActive(false)}>↺</button>
+      </div>
+      <p className={`qa-hint ${active ? 'qa-success' : ''}`}>{active ? `Outcome ${mode} recorded. The state now matches it.` : 'Measure the prepared superposition to continue.'}</p>
+    </>
+  )
+  if (control === 'uncertainty-width') return <RangeControl label="Position width" value={value} min={5} max={95} onChange={setValue} low="Narrow position" high="Broad position" />
+  if (control === 'wave-components') return <RangeControl label="Wave components" value={value} min={1} max={9} onChange={setValue} low="One wavelength" high="Many wavelengths" />
+  if (control === 'uncertainty-view') return (
+    <>
+      <Segmented label="Choose a distribution" value={mode} onChange={setMode} options={[{ value: 'position', label: 'Position', icon: '⌖' }, { value: 'momentum', label: 'Momentum', icon: '→' }]} />
+      <RangeControl label="Position width" value={value} min={5} max={95} onChange={setValue} low="Localized" high="Spread out" />
+    </>
+  )
+  if (control === 'state-angle') return <RangeControl label="State angle" value={value} min={0} max={100} onChange={setValue} low="0°" high="360°" />
+  if (control === 'basis-choice') return <Segmented label="Choose coordinates" value={mode} onChange={setMode} options={[{ value: 'z', label: 'Z basis', icon: '↕' }, { value: 'x', label: 'X basis', icon: '↔' }]} />
+  if (control === 'amplitude-phase') return <RangeControl label="Relative phase" value={value} min={0} max={100} onChange={setValue} low="0°" high="360°" />
+  if (control === 'potential-shape') return <Segmented label="Choose a potential" value={mode} onChange={setMode} options={[{ value: 'free', label: 'Free', icon: '—' }, { value: 'box', label: 'Box', icon: '□' }, { value: 'well', label: 'Well', icon: '⌣' }]} />
+  if (control === 'evolution-speed') return <RangeControl label="Evolution speed" value={value} min={10} max={100} onChange={setValue} low="Slow" high="Fast" />
+  if (control === 'equation-part') return <Segmented label="Inspect the Hamiltonian" value={mode} onChange={setMode} options={[{ value: 'kinetic', label: 'Kinetic', icon: '∿' }, { value: 'potential', label: 'Potential', icon: '⌖' }, { value: 'both', label: 'Together', icon: '+' }]} />
+  if (control === 'tunnel-energy') return <RangeControl label="Packet energy" value={value} min={5} max={95} onChange={setValue} low="Below barrier" high="Above barrier" />
+
   if (control === 'check' || control === 'checkpoint') {
     return (
       <div className="qa-check-stack">
@@ -154,7 +231,7 @@ function LessonControls({ lesson, control, value, mode, hits, active, pulse, ans
 
 export function FoundationLessonPage() {
   const { lessonSlug = '' } = useParams()
-  const lesson = useMemo(() => getFoundationLesson(lessonSlug), [lessonSlug])
+  const lesson = useMemo(() => getInteractiveLesson(lessonSlug), [lessonSlug])
   const navigate = useNavigate()
   const defaults = lessonDefaults[lessonSlug] ?? { value: 50, mode: 'particle' }
   const [step, setStep] = useState(0)
@@ -170,7 +247,7 @@ export function FoundationLessonPage() {
     if (!lesson) return
     const saved = getSavedStep(lesson.slug)
     setStep(saved < lesson.steps.length - 1 ? saved : 0)
-    const nextDefaults = lessonDefaults[lesson.slug]
+    const nextDefaults = lessonDefaults[lesson.slug] ?? { value: 50, mode: 'particle' }
     setValue(nextDefaults.value)
     setMode(nextDefaults.mode)
     setHits([])
@@ -186,6 +263,7 @@ export function FoundationLessonPage() {
     if (step === lesson.steps.length - 1) markLessonCompleted(lesson.slug)
     const control = lesson.steps[step]?.control
     if (control && control in controlDefaults) setValue(controlDefaults[control])
+    if (control && control in controlModeDefaults) setMode(controlModeDefaults[control])
     setAnswerState('idle')
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [lesson, step])
@@ -195,7 +273,7 @@ export function FoundationLessonPage() {
   const currentStep = Math.min(step, lesson.steps.length - 1)
   const current = lesson.steps[currentStep]
   const isCheck = current.control === 'check' || current.control === 'checkpoint'
-  const canContinue = current.control === 'detections' ? hits.length > 0 : current.control === 'spectrum' || current.control === 'photoelectric' ? pulse > 0 : isCheck ? answerState === 'correct' : true
+  const canContinue = current.control === 'detections' || current.control === 'measurement-lab' ? hits.length > 0 : current.control === 'collapse-lab' ? active : current.control === 'spectrum' || current.control === 'photoelectric' ? pulse > 0 : isCheck ? answerState === 'correct' : true
 
   const checkAnswers = () => {
     const correct = lesson.questions.every((question, index) => answers[index] === question.correct)
@@ -217,17 +295,19 @@ export function FoundationLessonPage() {
         <div className="qa-step-rail" style={{ gridTemplateColumns: `repeat(${lesson.steps.length}, 1fr)` }} aria-label={`Step ${currentStep + 1} of ${lesson.steps.length}`}>
           {lesson.steps.map((item, index) => <span key={item.label} className={index < currentStep ? 'done' : index === currentStep ? 'current' : ''} title={item.label} />)}
         </div>
-        <div className="qa-discovery-count" title={`Foundation lesson ${lesson.number}`}><span aria-hidden="true">◆</span><strong>{lesson.number}</strong></div>
+        <div className="qa-discovery-count" title={`Course lesson ${lesson.number}`}><span aria-hidden="true">◆</span><strong>{lesson.number}</strong></div>
       </header>
 
       <main className="qa-player-main">
         <section className="qa-visual-panel">
           <div className="qa-visual-caption"><span>Interactive model</span><strong>{current.label}</strong></div>
-          <FoundationCanvas scene={current.scene} value={value} mode={mode} hits={hits} active={active} pulse={pulse} accent={lesson.accent} />
+          {lesson.canvas === 'language'
+            ? <LanguageCanvas scene={current.scene as LanguageScene} value={value} mode={mode} hits={hits} active={active} pulse={pulse} accent={lesson.accent} />
+            : <FoundationCanvas scene={current.scene as FoundationScene} value={value} mode={mode} hits={hits} active={active} pulse={pulse} accent={lesson.accent} />}
         </section>
         <section className="qa-lesson-copy">
           <div className="qa-copy-inner">
-            <p className="qa-lesson-kicker">Foundation {String(lesson.number).padStart(2, '0')} · {lesson.minutes} min</p>
+            <p className="qa-lesson-kicker">{lesson.stageLabel ?? 'Foundation'} {String(lesson.number).padStart(2, '0')} · {lesson.minutes} min</p>
             <p className="qa-eyebrow">{current.eyebrow}</p>
             <h1>{current.title}</h1>
             <p className="qa-lesson-lede">{current.lede}</p>

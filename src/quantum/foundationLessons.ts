@@ -33,8 +33,8 @@ export interface FoundationStep {
   title: string
   lede: string
   body: string
-  scene: FoundationScene
-  control?: 'particle-speed' | 'wave-frequency' | 'model-switch' | 'energy-mode' | 'energy-level' | 'spectrum' | 'brightness' | 'color' | 'photoelectric' | 'slit-count' | 'phase' | 'detections' | 'which-path' | 'check' | 'checkpoint'
+  scene: string
+  control?: string
 }
 
 export interface FoundationLesson {
@@ -43,6 +43,9 @@ export interface FoundationLesson {
   number: number
   minutes: number
   accent: string
+  canvas?: 'foundation' | 'language'
+  stageNumber?: number
+  stageLabel?: string
   steps: FoundationStep[]
   questions: ConceptQuestion[]
   takeaways: string[]
@@ -250,6 +253,7 @@ export const FOUNDATION_LESSON_CONTENT: FoundationLesson[] = [
     number: 6,
     minutes: 6,
     accent: '#34d399',
+    nextSlug: 'the-wavefunction',
     steps: [
       {
         label: 'Connect', eyebrow: 'Build the model', title: 'Four clues point to one new framework',
