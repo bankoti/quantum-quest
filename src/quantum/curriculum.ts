@@ -68,11 +68,11 @@ export const QUANTUM_STAGES: QuantumStage[] = [
     description: 'Explore correlations that cannot be reproduced by any local hidden instruction sheet.',
     accent: '#fbbf24',
     lessons: [
-      { title: 'Two-particle states', description: 'Move from one quantum object to a shared state.', minutes: 8 },
-      { title: 'Entanglement', description: 'Build a state whose parts cannot be described independently.', minutes: 9 },
-      { title: "Bell's experiment", description: 'Test where classical explanations reach their limit.', minutes: 11 },
-      { title: 'Decoherence', description: 'Understand how fragile quantum patterns fade into classical behavior.', minutes: 9 },
-      { title: "Schrodinger's cat", description: 'Use the thought experiment carefully, without the usual shortcuts.', minutes: 7 },
+      { title: 'Two-particle states', description: 'Move from one quantum object to a shared state.', minutes: 8, slug: 'two-particle-states', playable: true },
+      { title: 'Entanglement', description: 'Build a state whose parts cannot be described independently.', minutes: 9, slug: 'entanglement', playable: true },
+      { title: "Bell's experiment", description: 'Test where classical explanations reach their limit.', minutes: 11, slug: 'bells-experiment', playable: true },
+      { title: 'Decoherence', description: 'Understand how fragile quantum patterns fade into classical behavior.', minutes: 9, slug: 'decoherence', playable: true },
+      { title: "Schrodinger's cat", description: 'Use the thought experiment carefully, without the usual shortcuts.', minutes: 8, slug: 'schrodingers-cat', playable: true },
     ],
   },
   {

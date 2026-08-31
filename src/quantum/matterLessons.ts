@@ -234,7 +234,7 @@ export const MATTER_LESSON_CONTENT: InteractiveLesson[] = [
     takeaways: ['Identical particles have no observable individual identity.', 'Bosons and fermions obey different exchange symmetries.', 'Pauli exclusion forces electrons to fill distinct states.'],
   },
   {
-    slug: 'why-the-periodic-table-works', title: 'Why the periodic table works', number: 18, minutes: 10, accent: '#34d399', canvas: 'matter', stageNumber: 3, stageLabel: 'Atoms and matter',
+    slug: 'why-the-periodic-table-works', title: 'Why the periodic table works', number: 18, minutes: 10, accent: '#34d399', canvas: 'matter', stageNumber: 3, stageLabel: 'Atoms and matter', nextSlug: 'two-particle-states',
     steps: [
       {
         label: 'Shells', eyebrow: 'Fill an atom', title: 'Electron states organize into shells and subshells',

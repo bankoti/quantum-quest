@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { FoundationCanvas, sampleBands } from './FoundationCanvas'
 import { FoundationScene } from './foundationLessons'
+import { EntanglementCanvas } from './EntanglementCanvas'
+import { EntanglementScene } from './entanglementLessons'
 import { LanguageCanvas } from './LanguageCanvas'
 import { LanguageScene } from './languageLessons'
 import { MatterCanvas } from './MatterCanvas'
@@ -32,6 +34,11 @@ const lessonDefaults: Record<string, { value: number; mode: string }> = {
   spin: { value: 0, mode: 'z' },
   'identical-particles': { value: 4, mode: 'fermion' },
   'why-the-periodic-table-works': { value: 10, mode: 'shells' },
+  'two-particle-states': { value: 70, mode: '00' },
+  entanglement: { value: 100, mode: 'z' },
+  'bells-experiment': { value: 50, mode: 'classical' },
+  decoherence: { value: 35, mode: 'environment' },
+  'schrodingers-cat': { value: 50, mode: 'system' },
 }
 
 const controlDefaults: Record<string, number> = {
@@ -67,6 +74,14 @@ const controlDefaults: Record<string, number> = {
   'electron-count': 10,
   'subshell-fill': 4,
   'element-build': 10,
+  'pair-correlation': 70,
+  'entangle-strength': 80,
+  'bell-angle': 50,
+  'environment-strength': 30,
+  'environment-size': 12,
+  'decoherence-level': 50,
+  'cat-trigger': 50,
+  'cat-environment': 75,
 }
 
 const controlModeDefaults: Record<string, string> = {
@@ -82,6 +97,10 @@ const controlModeDefaults: Record<string, string> = {
   'spin-measurement': 'z',
   'particle-kind': 'fermion',
   'statistics-mode': 'fermion',
+  'pair-state': '00',
+  'pair-axis': 'z',
+  'bell-model': 'classical',
+  'cat-view': 'system',
 }
 
 function RangeControl({ label, value, min, max, onChange, low, high }: { label: string; value: number; min: number; max: number; onChange: (value: number) => void; low: string; high: string }) {
@@ -290,6 +309,63 @@ function LessonControls({ lesson, control, value, mode, hits, active, pulse, ans
   if (control === 'subshell-fill') return <RangeControl label="p subshell electrons" value={value} min={1} max={6} onChange={setValue} low="Fill singly" high="Pair all" />
   if (control === 'element-build') return <RangeControl label="Atomic number" value={value} min={1} max={18} onChange={setValue} low="Hydrogen" high="Argon" />
 
+  if (control === 'pair-state') return <Segmented label="Prepare a two-particle product state" value={mode} onChange={setMode} options={[{ value: '00', label: '00', icon: '|' }, { value: '01', label: '01', icon: '|' }, { value: '10', label: '10', icon: '|' }, { value: '11', label: '11', icon: '|' }]} />
+  if (control === 'pair-correlation') return <RangeControl label="Pair correlation" value={value} min={0} max={100} onChange={setValue} low="Independent" high="Always matched" />
+  if (control === 'correlation-sample') {
+    const sample = () => {
+      const matched = Math.random() < 0.5 + value / 200
+      return matched ? Math.random() < 0.5 ? 0 : 3 : Math.random() < 0.5 ? 1 : 2
+    }
+    return (
+      <>
+        <div className="qa-action-row">
+          <button className="qa-secondary" onClick={() => setHits(current => [...current, sample()].slice(-320))}>Measure pair</button>
+          <button className="qa-primary" onClick={() => setHits(current => [...current, ...Array.from({ length: 80 }, sample)].slice(-320))}>Measure 80 pairs</button>
+          <button className="qa-icon-button" title="Reset pair measurements" aria-label="Reset pair measurements" onClick={() => setHits([])}>↺</button>
+        </div>
+        <p className={`qa-hint ${hits.length ? 'qa-success' : ''}`}>{hits.length ? `${hits.length} joint outcomes recorded.` : 'Measure the pair to reconstruct its joint table.'}</p>
+      </>
+    )
+  }
+  if (control === 'entangle-strength') return <RangeControl label="Entanglement strength" value={value} min={0} max={100} onChange={setValue} low="Product state" high="Bell pair" />
+  if (control === 'pair-axis') return <Segmented label="Choose a local measurement axis" value={mode} onChange={setMode} options={[{ value: 'z', label: 'Z axis', icon: '↕' }, { value: 'x', label: 'X axis', icon: '↔' }]} />
+  if (control === 'entangled-sample') {
+    const sample = () => Math.random() < 0.5 ? 0 : 3
+    return (
+      <>
+        <Segmented label="Choose a shared measurement axis" value={mode} onChange={next => { setMode(next); setHits([]) }} options={[{ value: 'z', label: 'Z axis', icon: '↕' }, { value: 'x', label: 'X axis', icon: '↔' }]} />
+        <div className="qa-action-row">
+          <button className="qa-secondary" onClick={() => setHits(current => [...current, sample()].slice(-320))}>Measure pair</button>
+          <button className="qa-primary" onClick={() => setHits(current => [...current, ...Array.from({ length: 80 }, sample)].slice(-320))}>Measure 80 pairs</button>
+          <button className="qa-icon-button" title="Reset Bell-pair measurements" aria-label="Reset Bell-pair measurements" onClick={() => setHits([])}>↺</button>
+        </div>
+        <p className={`qa-hint ${hits.length ? 'qa-success' : ''}`}>{hits.length ? `${hits.length} Bell-pair outcomes compared.` : 'Measure both particles along the same axis.'}</p>
+      </>
+    )
+  }
+  if (control === 'bell-model') return <Segmented label="Choose a Bell-game model" value={mode} onChange={setMode} options={[{ value: 'classical', label: 'Local cards', icon: '▤' }, { value: 'quantum', label: 'Bell pair', icon: '∞' }]} />
+  if (control === 'bell-angle') return <RangeControl label="Detector angle" value={value} min={0} max={100} onChange={setValue} low="Same axis" high="90 degrees" />
+  if (control === 'bell-run') {
+    const winProbability = mode === 'quantum' ? Math.cos(Math.PI / 8) ** 2 : 0.75
+    const sample = () => Math.random() < winProbability ? 1 : 0
+    return (
+      <>
+        <Segmented label="Choose a Bell-game strategy" value={mode} onChange={next => { setMode(next); setHits([]) }} options={[{ value: 'classical', label: 'Local cards', icon: '▤' }, { value: 'quantum', label: 'Bell pair', icon: '∞' }]} />
+        <div className="qa-action-row">
+          <button className="qa-primary" onClick={() => setHits(Array.from({ length: 200 }, sample))}>Run 200 trials</button>
+          <button className="qa-icon-button" title="Reset Bell trials" aria-label="Reset Bell trials" onClick={() => setHits([])}>↺</button>
+        </div>
+        <p className={`qa-hint ${hits.length ? 'qa-success' : ''}`}>{hits.length ? `${hits.filter(hit => hit === 1).length} of ${hits.length} Bell-game trials won.` : 'Run the game to compare its score with the local limit.'}</p>
+      </>
+    )
+  }
+  if (control === 'environment-strength') return <RangeControl label="Environmental coupling" value={value} min={0} max={100} onChange={setValue} low="Isolated" high="Strongly coupled" />
+  if (control === 'environment-size') return <RangeControl label="Environment records" value={value} min={1} max={24} onChange={setValue} low="One record" high="Many records" />
+  if (control === 'decoherence-level') return <RangeControl label="Decoherence level" value={value} min={0} max={100} onChange={setValue} low="Visible fringes" high="Classical-looking mixture" />
+  if (control === 'cat-trigger') return <RangeControl label="Decay probability" value={value} min={0} max={100} onChange={setValue} low="No decay" high="Certain decay" />
+  if (control === 'cat-view') return <Segmented label="Choose a cat experiment view" value={mode} onChange={setMode} options={[{ value: 'system', label: 'Apparatus', icon: '→' }, { value: 'branches', label: 'Branches', icon: '⑂' }]} />
+  if (control === 'cat-environment') return <RangeControl label="Environmental contact" value={value} min={0} max={100} onChange={setValue} low="Ideal isolation" high="Everyday world" />
+
   if (control === 'check' || control === 'checkpoint') {
     return (
       <div className="qa-check-stack">
@@ -351,7 +427,8 @@ export function InteractiveLessonPage() {
   const currentStep = Math.min(step, lesson.steps.length - 1)
   const current = lesson.steps[currentStep]
   const isCheck = current.control === 'check' || current.control === 'checkpoint'
-  const canContinue = current.control === 'detections' || current.control === 'measurement-lab' || current.control === 'barrier-width' || current.control === 'orbital-sample' || current.control === 'spin-measurement' ? hits.length > 0 : current.control === 'collapse-lab' ? active : current.control === 'spectrum' || current.control === 'photoelectric' ? pulse > 0 : isCheck ? answerState === 'correct' : true
+  const evidenceControls = ['detections', 'measurement-lab', 'barrier-width', 'orbital-sample', 'spin-measurement', 'correlation-sample', 'entangled-sample', 'bell-run']
+  const canContinue = evidenceControls.includes(current.control ?? '') ? hits.length > 0 : current.control === 'collapse-lab' ? active : current.control === 'spectrum' || current.control === 'photoelectric' ? pulse > 0 : isCheck ? answerState === 'correct' : true
 
   const checkAnswers = () => {
     const correct = lesson.questions.every((question, index) => answers[index] === question.correct)
@@ -379,11 +456,13 @@ export function InteractiveLessonPage() {
       <main className="qa-player-main">
         <section className="qa-visual-panel">
           <div className="qa-visual-caption"><span>Interactive model</span><strong>{current.label}</strong></div>
-          {lesson.canvas === 'matter'
-            ? <MatterCanvas scene={current.scene as MatterScene} value={value} mode={mode} hits={hits} active={active} pulse={pulse} accent={lesson.accent} />
-            : lesson.canvas === 'language'
-              ? <LanguageCanvas scene={current.scene as LanguageScene} value={value} mode={mode} hits={hits} active={active} pulse={pulse} accent={lesson.accent} />
-              : <FoundationCanvas scene={current.scene as FoundationScene} value={value} mode={mode} hits={hits} active={active} pulse={pulse} accent={lesson.accent} />}
+          {lesson.canvas === 'entanglement'
+            ? <EntanglementCanvas scene={current.scene as EntanglementScene} value={value} mode={mode} hits={hits} active={active} pulse={pulse} accent={lesson.accent} />
+            : lesson.canvas === 'matter'
+              ? <MatterCanvas scene={current.scene as MatterScene} value={value} mode={mode} hits={hits} active={active} pulse={pulse} accent={lesson.accent} />
+              : lesson.canvas === 'language'
+                ? <LanguageCanvas scene={current.scene as LanguageScene} value={value} mode={mode} hits={hits} active={active} pulse={pulse} accent={lesson.accent} />
+                : <FoundationCanvas scene={current.scene as FoundationScene} value={value} mode={mode} hits={hits} active={active} pulse={pulse} accent={lesson.accent} />}
         </section>
         <section className="qa-lesson-copy">
           <div className="qa-copy-inner">

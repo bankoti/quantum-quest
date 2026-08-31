@@ -1,6 +1,6 @@
 # Quantum Quest
 
-A visual, interactive course for learning quantum physics from first principles. The course includes a 35-lesson roadmap and 18 complete lessons across Foundations, Quantum Language, and Atoms and Matter. It moves from scale, quantized energy, and photons through wavefunctions, superposition, measurement, and uncertainty, then uses those ideas to build confinement, tunneling, orbitals, spin, identical particles, and the periodic table.
+A visual, interactive course for learning quantum physics from first principles. The course includes a 35-lesson roadmap and 23 complete lessons across Foundations, Quantum Language, Atoms and Matter, and Entanglement. It moves from scale, quantized energy, and photons through wavefunctions, atoms, joint states, Bell experiments, decoherence, and the quantum-to-classical transition.
 
 ## Run locally
 
