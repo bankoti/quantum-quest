@@ -53,12 +53,12 @@ export const QUANTUM_STAGES: QuantumStage[] = [
     description: 'Use the language to explain matter, chemistry, and the structure of the physical world.',
     accent: '#fb7185',
     lessons: [
-      { title: 'Particle in a box', description: 'Watch boundaries turn continuous motion into discrete energies.', minutes: 9 },
-      { title: 'Quantum tunneling', description: 'Cross a barrier that classical physics says is impossible.', minutes: 8 },
-      { title: 'Atomic orbitals', description: 'Replace planetary paths with probability shapes.', minutes: 10 },
-      { title: 'Spin', description: 'Meet an intrinsic quantum property with no classical twin.', minutes: 9 },
-      { title: 'Identical particles', description: 'See why fermions and bosons build different worlds.', minutes: 10 },
-      { title: 'Why the periodic table works', description: 'Assemble chemistry from shells, spin, and exclusion.', minutes: 10 },
+      { title: 'Particle in a box', description: 'Watch boundaries turn continuous motion into discrete energies.', minutes: 9, slug: 'particle-in-a-box', playable: true },
+      { title: 'Quantum tunneling', description: 'Cross a barrier that classical physics says is impossible.', minutes: 8, slug: 'quantum-tunneling', playable: true },
+      { title: 'Atomic orbitals', description: 'Replace planetary paths with probability shapes.', minutes: 10, slug: 'atomic-orbitals', playable: true },
+      { title: 'Spin', description: 'Meet an intrinsic quantum property with no classical twin.', minutes: 9, slug: 'spin', playable: true },
+      { title: 'Identical particles', description: 'See why fermions and bosons build different worlds.', minutes: 10, slug: 'identical-particles', playable: true },
+      { title: 'Why the periodic table works', description: 'Assemble chemistry from shells, spin, and exclusion.', minutes: 10, slug: 'why-the-periodic-table-works', playable: true },
     ],
   },
   {

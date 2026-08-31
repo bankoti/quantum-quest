@@ -2,7 +2,7 @@ import { useLayoutEffect } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { QuantumHubPage } from './quantum/QuantumHubPage'
 import { QuantumLessonPage } from './quantum/QuantumLessonPage'
-import { FoundationLessonPage } from './quantum/FoundationLessonPage'
+import { InteractiveLessonPage } from './quantum/InteractiveLessonPage'
 import { QUANTUM_LESSON_PATH } from './quantum/curriculum'
 
 function ScrollToTop() {
@@ -29,7 +29,7 @@ export function App() {
       <Routes>
         <Route path="/" element={<QuantumHubPage />} />
         <Route path={QUANTUM_LESSON_PATH} element={<QuantumLessonPage />} />
-        <Route path="/:lessonSlug" element={<FoundationLessonPage />} />
+        <Route path="/:lessonSlug" element={<InteractiveLessonPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>

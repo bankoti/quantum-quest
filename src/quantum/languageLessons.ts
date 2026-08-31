@@ -1,4 +1,4 @@
-import { FoundationLesson } from './foundationLessons'
+import { InteractiveLesson } from './lessonTypes'
 
 export type LanguageScene =
   | 'wavefunction-map'
@@ -28,7 +28,7 @@ export type LanguageScene =
   | 'equation-check'
   | 'language-complete'
 
-export const LANGUAGE_LESSON_CONTENT: FoundationLesson[] = [
+export const LANGUAGE_LESSON_CONTENT: InteractiveLesson[] = [
   {
     slug: 'the-wavefunction', title: 'The wavefunction', number: 7, minutes: 8, accent: '#a78bfa', canvas: 'language', stageNumber: 2, stageLabel: 'Quantum language', nextSlug: 'superposition',
     steps: [
@@ -235,7 +235,7 @@ export const LANGUAGE_LESSON_CONTENT: FoundationLesson[] = [
     takeaways: ['A state is independent of the coordinates used to describe it.', 'A basis defines a set of distinguishable measurement outcomes.', 'Amplitudes are basis-dependent coordinates with size and phase.'],
   },
   {
-    slug: 'schrodingers-equation', title: "Schrodinger's equation", number: 12, minutes: 10, accent: '#34d399', canvas: 'language', stageNumber: 2, stageLabel: 'Quantum language',
+    slug: 'schrodingers-equation', title: "Schrodinger's equation", number: 12, minutes: 10, accent: '#34d399', canvas: 'language', stageNumber: 2, stageLabel: 'Quantum language', nextSlug: 'particle-in-a-box',
     steps: [
       {
         label: 'Landscape', eyebrow: 'Set the physical situation', title: 'Potential energy shapes the possibilities',
@@ -283,6 +283,6 @@ export const LANGUAGE_LESSON_CONTENT: FoundationLesson[] = [
   },
 ]
 
-export function getLanguageLesson(slug: string): FoundationLesson | undefined {
+export function getLanguageLesson(slug: string): InteractiveLesson | undefined {
   return LANGUAGE_LESSON_CONTENT.find(lesson => lesson.slug === slug)
 }

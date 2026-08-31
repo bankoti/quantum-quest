@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { FoundationCanvas, sampleBands } from './FoundationCanvas'
-import { FoundationScene, ConceptQuestion, FoundationLesson } from './foundationLessons'
+import { FoundationScene } from './foundationLessons'
 import { LanguageCanvas } from './LanguageCanvas'
 import { LanguageScene } from './languageLessons'
+import { MatterCanvas } from './MatterCanvas'
+import { MatterScene } from './matterLessons'
 import { getInteractiveLesson } from './interactiveLessons'
+import { ConceptQuestion, InteractiveLesson } from './lessonTypes'
 import { lessonPath } from './curriculum'
 import { getSavedStep, markLessonCompleted, saveStep } from './progress'
 import './quantum.css'
@@ -23,6 +26,12 @@ const lessonDefaults: Record<string, { value: number; mode: string }> = {
   'uncertainty-principle': { value: 50, mode: 'position' },
   'states-bases-and-amplitudes': { value: 25, mode: 'z' },
   'schrodingers-equation': { value: 50, mode: 'free' },
+  'particle-in-a-box': { value: 60, mode: 'box' },
+  'quantum-tunneling': { value: 60, mode: 'barrier' },
+  'atomic-orbitals': { value: 2, mode: 's' },
+  spin: { value: 0, mode: 'z' },
+  'identical-particles': { value: 4, mode: 'fermion' },
+  'why-the-periodic-table-works': { value: 10, mode: 'shells' },
 }
 
 const controlDefaults: Record<string, number> = {
@@ -47,6 +56,17 @@ const controlDefaults: Record<string, number> = {
   'amplitude-phase': 0,
   'evolution-speed': 50,
   'tunnel-energy': 45,
+  'box-width': 60,
+  'box-level': 2,
+  'barrier-height': 70,
+  'barrier-width': 45,
+  'orbital-level': 2,
+  'spin-axis': 50,
+  'spin-angle': 25,
+  occupancy: 4,
+  'electron-count': 10,
+  'subshell-fill': 4,
+  'element-build': 10,
 }
 
 const controlModeDefaults: Record<string, string> = {
@@ -58,6 +78,10 @@ const controlModeDefaults: Record<string, string> = {
   'basis-choice': 'z',
   'potential-shape': 'free',
   'equation-part': 'both',
+  'orbital-shape': 's',
+  'spin-measurement': 'z',
+  'particle-kind': 'fermion',
+  'statistics-mode': 'fermion',
 }
 
 function RangeControl({ label, value, min, max, onChange, low, high }: { label: string; value: number; min: number; max: number; onChange: (value: number) => void; low: string; high: string }) {
@@ -101,8 +125,8 @@ function QuestionBlock({ question, index, answer, answerState, onAnswer }: { que
   )
 }
 
-function LessonControls({ lesson, control, value, mode, hits, active, pulse, answers, answerState, setValue, setMode, setHits, setActive, setPulse, setAnswers, checkAnswers }: {
-  lesson: FoundationLesson
+function LessonControls({ lesson, control, value, mode, hits, active, pulse, answers, answerState, setValue, setMode, setHits, setActive, setPulse, setAnswers, setAnswerState, checkAnswers }: {
+  lesson: InteractiveLesson
   control?: string
   value: number
   mode: string
@@ -117,6 +141,7 @@ function LessonControls({ lesson, control, value, mode, hits, active, pulse, ans
   setActive: React.Dispatch<React.SetStateAction<boolean>>
   setPulse: React.Dispatch<React.SetStateAction<number>>
   setAnswers: React.Dispatch<React.SetStateAction<Record<number, number>>>
+  setAnswerState: React.Dispatch<React.SetStateAction<AnswerState>>
   checkAnswers: () => void
 }) {
   if (control === 'particle-speed') return <RangeControl label="Particle speed" value={value} min={10} max={100} onChange={setValue} low="Slow" high="Fast" />
@@ -212,11 +237,64 @@ function LessonControls({ lesson, control, value, mode, hits, active, pulse, ans
   if (control === 'equation-part') return <Segmented label="Inspect the Hamiltonian" value={mode} onChange={setMode} options={[{ value: 'kinetic', label: 'Kinetic', icon: '∿' }, { value: 'potential', label: 'Potential', icon: '⌖' }, { value: 'both', label: 'Together', icon: '+' }]} />
   if (control === 'tunnel-energy') return <RangeControl label="Packet energy" value={value} min={5} max={95} onChange={setValue} low="Below barrier" high="Above barrier" />
 
+  if (control === 'box-width') return <RangeControl label="Box width" value={value} min={35} max={90} onChange={setValue} low="Tight confinement" high="Wide box" />
+  if (control === 'box-level') return <RangeControl label="Quantum level" value={value} min={1} max={5} onChange={setValue} low="Ground state" high="Higher mode" />
+  if (control === 'barrier-height') return <RangeControl label="Barrier height" value={value} min={20} max={95} onChange={setValue} low="Below energy" high="Classically forbidden" />
+  if (control === 'barrier-width') {
+    const transmission = Math.max(0.02, Math.exp(-(0.04 + value / 100 * 0.28) * 12) * 0.705)
+    const sample = () => Math.random() < transmission ? 1 : 0
+    const transmitted = hits.filter(hit => hit === 1).length
+    return (
+      <>
+        <RangeControl label="Barrier width" value={value} min={10} max={90} onChange={next => { setValue(next); setHits([]) }} low="Thin" high="Thick" />
+        <div className="qa-action-row">
+          <button className="qa-primary" onClick={() => setHits(Array.from({ length: 100 }, sample))}>Send 100 particles</button>
+          <button className="qa-icon-button" title="Reset tunneling trials" aria-label="Reset tunneling trials" onClick={() => setHits([])}>↺</button>
+        </div>
+        <p className={`qa-hint ${hits.length ? 'qa-success' : ''}`}>{hits.length ? `${transmitted} of ${hits.length} particles tunneled.` : 'Send a batch to test this barrier.'}</p>
+      </>
+    )
+  }
+  if (control === 'orbital-shape') return <Segmented label="Choose an orbital family" value={mode} onChange={setMode} options={[{ value: 's', label: 's orbital', icon: '●' }, { value: 'p', label: 'p orbital', icon: '∞' }, { value: 'd', label: 'd orbital', icon: '✣' }]} />
+  if (control === 'orbital-level') return <RangeControl label="Orbital level" value={value} min={1} max={4} onChange={setValue} low="No radial node" high="More radial nodes" />
+  if (control === 'orbital-sample') return (
+    <>
+      <div className="qa-action-row">
+        <button className="qa-secondary" onClick={() => setHits(current => [...current, Math.random()].slice(-300))}>Sample one</button>
+        <button className="qa-primary" onClick={() => setHits(current => [...current, ...Array.from({ length: 60 }, Math.random)].slice(-300))}>Sample 60</button>
+        <button className="qa-icon-button" title="Reset orbital detections" aria-label="Reset orbital detections" onClick={() => setHits([])}>↺</button>
+      </div>
+      <p className={`qa-hint ${hits.length ? 'qa-success' : ''}`}>{hits.length ? `${hits.length} orbital detections recorded.` : 'Record detections to reveal the probability cloud.'}</p>
+    </>
+  )
+  if (control === 'spin-axis') return <RangeControl label="Magnet axis" value={value} min={0} max={100} onChange={setValue} low="-90 degrees" high="+90 degrees" />
+  if (control === 'spin-angle') return <RangeControl label="Spin state angle" value={value} min={0} max={100} onChange={setValue} low="Up" high="One full turn" />
+  if (control === 'spin-measurement') {
+    const sample = () => mode === 'z' ? 1 : Math.random() < 0.5 ? 1 : 0
+    return (
+      <>
+        <Segmented label="Choose a spin measurement axis" value={mode} onChange={value => { setMode(value); setHits([]) }} options={[{ value: 'z', label: 'Z axis', icon: '↕' }, { value: 'x', label: 'X axis', icon: '↔' }]} />
+        <div className="qa-action-row">
+          <button className="qa-secondary" onClick={() => setHits(current => [...current, sample()].slice(-300))}>Measure once</button>
+          <button className="qa-primary" onClick={() => setHits(current => [...current, ...Array.from({ length: 50 }, sample)].slice(-300))}>Measure 50</button>
+          <button className="qa-icon-button" title="Reset spin outcomes" aria-label="Reset spin outcomes" onClick={() => setHits([])}>↺</button>
+        </div>
+        <p className={`qa-hint ${hits.length ? 'qa-success' : ''}`}>{hits.length ? `${hits.length} spin outcomes recorded along ${mode.toUpperCase()}.` : 'Measure the prepared spin to continue.'}</p>
+      </>
+    )
+  }
+  if (control === 'particle-kind') return <Segmented label="Choose an identical particle family" value={mode} onChange={setMode} options={[{ value: 'fermion', label: 'Fermion', icon: '−' }, { value: 'boson', label: 'Boson', icon: '+' }]} />
+  if (control === 'occupancy') return <RangeControl label="Fermion count" value={value} min={1} max={8} onChange={setValue} low="One particle" high="Fill states" />
+  if (control === 'statistics-mode') return <Segmented label="Compare quantum statistics" value={mode} onChange={setMode} options={[{ value: 'fermion', label: 'Fermions', icon: '▥' }, { value: 'boson', label: 'Bosons', icon: '◎' }]} />
+  if (control === 'electron-count') return <RangeControl label="Electron count" value={value} min={1} max={18} onChange={setValue} low="Hydrogen" high="Argon" />
+  if (control === 'subshell-fill') return <RangeControl label="p subshell electrons" value={value} min={1} max={6} onChange={setValue} low="Fill singly" high="Pair all" />
+  if (control === 'element-build') return <RangeControl label="Atomic number" value={value} min={1} max={18} onChange={setValue} low="Hydrogen" high="Argon" />
+
   if (control === 'check' || control === 'checkpoint') {
     return (
       <div className="qa-check-stack">
         {lesson.questions.map((question, index) => (
-          <QuestionBlock key={question.question} question={question} index={index} answer={answers[index]} answerState={answerState} onAnswer={answer => { setAnswers(current => ({ ...current, [index]: answer })) }} />
+          <QuestionBlock key={question.question} question={question} index={index} answer={answers[index]} answerState={answerState} onAnswer={answer => { setAnswers(current => ({ ...current, [index]: answer })); setAnswerState('idle') }} />
         ))}
         <button className="qa-primary" disabled={Object.keys(answers).length !== lesson.questions.length} onClick={checkAnswers}>Check model →</button>
         <div className={`qa-feedback-panel ${answerState}`} aria-live="polite">
@@ -229,7 +307,7 @@ function LessonControls({ lesson, control, value, mode, hits, active, pulse, ans
   return null
 }
 
-export function FoundationLessonPage() {
+export function InteractiveLessonPage() {
   const { lessonSlug = '' } = useParams()
   const lesson = useMemo(() => getInteractiveLesson(lessonSlug), [lessonSlug])
   const navigate = useNavigate()
@@ -273,7 +351,7 @@ export function FoundationLessonPage() {
   const currentStep = Math.min(step, lesson.steps.length - 1)
   const current = lesson.steps[currentStep]
   const isCheck = current.control === 'check' || current.control === 'checkpoint'
-  const canContinue = current.control === 'detections' || current.control === 'measurement-lab' ? hits.length > 0 : current.control === 'collapse-lab' ? active : current.control === 'spectrum' || current.control === 'photoelectric' ? pulse > 0 : isCheck ? answerState === 'correct' : true
+  const canContinue = current.control === 'detections' || current.control === 'measurement-lab' || current.control === 'barrier-width' || current.control === 'orbital-sample' || current.control === 'spin-measurement' ? hits.length > 0 : current.control === 'collapse-lab' ? active : current.control === 'spectrum' || current.control === 'photoelectric' ? pulse > 0 : isCheck ? answerState === 'correct' : true
 
   const checkAnswers = () => {
     const correct = lesson.questions.every((question, index) => answers[index] === question.correct)
@@ -301,9 +379,11 @@ export function FoundationLessonPage() {
       <main className="qa-player-main">
         <section className="qa-visual-panel">
           <div className="qa-visual-caption"><span>Interactive model</span><strong>{current.label}</strong></div>
-          {lesson.canvas === 'language'
-            ? <LanguageCanvas scene={current.scene as LanguageScene} value={value} mode={mode} hits={hits} active={active} pulse={pulse} accent={lesson.accent} />
-            : <FoundationCanvas scene={current.scene as FoundationScene} value={value} mode={mode} hits={hits} active={active} pulse={pulse} accent={lesson.accent} />}
+          {lesson.canvas === 'matter'
+            ? <MatterCanvas scene={current.scene as MatterScene} value={value} mode={mode} hits={hits} active={active} pulse={pulse} accent={lesson.accent} />
+            : lesson.canvas === 'language'
+              ? <LanguageCanvas scene={current.scene as LanguageScene} value={value} mode={mode} hits={hits} active={active} pulse={pulse} accent={lesson.accent} />
+              : <FoundationCanvas scene={current.scene as FoundationScene} value={value} mode={mode} hits={hits} active={active} pulse={pulse} accent={lesson.accent} />}
         </section>
         <section className="qa-lesson-copy">
           <div className="qa-copy-inner">
@@ -323,7 +403,7 @@ export function FoundationLessonPage() {
                 </div>
               </>
             ) : (
-              <LessonControls lesson={lesson} control={current.control} value={value} mode={mode} hits={hits} active={active} pulse={pulse} answers={answers} answerState={answerState} setValue={setValue} setMode={setMode} setHits={setHits} setActive={setActive} setPulse={setPulse} setAnswers={setAnswers} checkAnswers={checkAnswers} />
+              <LessonControls lesson={lesson} control={current.control} value={value} mode={mode} hits={hits} active={active} pulse={pulse} answers={answers} answerState={answerState} setValue={setValue} setMode={setMode} setHits={setHits} setActive={setActive} setPulse={setPulse} setAnswers={setAnswers} setAnswerState={setAnswerState} checkAnswers={checkAnswers} />
             )}
           </div>
           {currentStep < lesson.steps.length - 1 && <div className="qa-lesson-nav"><span>{currentStep + 1}/{lesson.steps.length - 1}</span><button className="qa-primary" disabled={!canContinue} onClick={next}>{isCheck ? 'See summary' : 'Continue'} →</button></div>}

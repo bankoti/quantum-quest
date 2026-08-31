@@ -1,3 +1,5 @@
+import { InteractiveLesson } from './lessonTypes'
+
 export type FoundationScene =
   | 'particle-motion'
   | 'wave-motion'
@@ -20,39 +22,7 @@ export type FoundationScene =
   | 'foundation-check'
   | 'stage-complete'
 
-export interface ConceptQuestion {
-  question: string
-  options: string[]
-  correct: number
-  success: string
-}
-
-export interface FoundationStep {
-  label: string
-  eyebrow: string
-  title: string
-  lede: string
-  body: string
-  scene: string
-  control?: string
-}
-
-export interface FoundationLesson {
-  slug: string
-  title: string
-  number: number
-  minutes: number
-  accent: string
-  canvas?: 'foundation' | 'language'
-  stageNumber?: number
-  stageLabel?: string
-  steps: FoundationStep[]
-  questions: ConceptQuestion[]
-  takeaways: string[]
-  nextSlug?: string
-}
-
-export const FOUNDATION_LESSON_CONTENT: FoundationLesson[] = [
+export const FOUNDATION_LESSON_CONTENT: InteractiveLesson[] = [
   {
     slug: 'classical-particles-and-waves',
     title: 'Classical particles and waves',
@@ -298,6 +268,6 @@ export const FOUNDATION_LESSON_CONTENT: FoundationLesson[] = [
   },
 ]
 
-export function getFoundationLesson(slug: string): FoundationLesson | undefined {
+export function getFoundationLesson(slug: string): InteractiveLesson | undefined {
   return FOUNDATION_LESSON_CONTENT.find(lesson => lesson.slug === slug)
 }
