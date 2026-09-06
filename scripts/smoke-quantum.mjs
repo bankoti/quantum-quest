@@ -10,6 +10,10 @@ const port = 4174
 const base = `http://localhost:${port}`
 
 fs.mkdirSync(shotDir, { recursive: true })
+const staticRoutePages = fs.readdirSync(path.join(root, 'dist'), { withFileTypes: true })
+  .filter(entry => entry.isDirectory() && fs.existsSync(path.join(root, 'dist', entry.name, 'index.html')))
+if (staticRoutePages.length !== 29) throw new Error(`Expected 29 static lesson routes, found ${staticRoutePages.length}`)
+if (!fs.existsSync(path.join(root, 'dist', '404.html'))) throw new Error('Expected a GitHub Pages fallback document')
 const server = spawn(`npx vite preview --port ${port} --strictPort`, { cwd: root, shell: true, stdio: 'inherit' })
 
 async function waitForServer() {

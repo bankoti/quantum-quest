@@ -27,7 +27,6 @@ jobs:
       - run: npm run build
         env:
           DEPLOY_BASE: /quantum-quest/
-      - run: cp dist/index.html dist/404.html
       - uses: actions/configure-pages@v5
         with:
           enablement: true
