@@ -189,7 +189,7 @@ export const ENTANGLEMENT_LESSON_CONTENT: InteractiveLesson[] = [
     takeaways: ['Decoherence is entanglement with uncontrolled environmental degrees of freedom.', 'Environmental records suppress locally observable interference.', 'The global quantum state can remain coherent even when the subsystem looks classical.'],
   },
   {
-    slug: 'schrodingers-cat', title: "Schrodinger's cat", number: 23, minutes: 8, accent: '#fb7185', canvas: 'entanglement', stageNumber: 4, stageLabel: 'Entanglement',
+    slug: 'schrodingers-cat', title: "Schrodinger's cat", number: 23, minutes: 8, accent: '#fb7185', canvas: 'entanglement', stageNumber: 4, stageLabel: 'Entanglement', nextSlug: 'lasers',
     steps: [
       {
         label: 'Chain', eyebrow: 'Build the thought experiment', title: 'A microscopic event can control a macroscopic record',

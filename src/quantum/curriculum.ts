@@ -82,12 +82,12 @@ export const QUANTUM_STAGES: QuantumStage[] = [
     description: 'Trace the same principles through technologies already woven into everyday life.',
     accent: '#34d399',
     lessons: [
-      { title: 'Lasers', description: 'Turn energy levels and stimulated emission into coherent light.', minutes: 8 },
-      { title: 'Semiconductors', description: 'See how band structure makes modern electronics possible.', minutes: 10 },
-      { title: 'MRI and quantum sensors', description: 'Use spin as a precise probe of bodies and fields.', minutes: 9 },
-      { title: 'Qubits', description: 'Encode information in controllable two-state quantum systems.', minutes: 9 },
-      { title: 'Quantum gates and circuits', description: 'Transform amplitudes and build small algorithms.', minutes: 11 },
-      { title: 'Quantum cryptography', description: 'Use measurement disturbance to reveal eavesdropping.', minutes: 8 },
+      { title: 'Lasers', description: 'Turn energy levels and stimulated emission into coherent light.', minutes: 8, slug: 'lasers', playable: true },
+      { title: 'Semiconductors', description: 'See how band structure makes modern electronics possible.', minutes: 10, slug: 'semiconductors', playable: true },
+      { title: 'MRI and quantum sensors', description: 'Use spin as a precise probe of bodies and fields.', minutes: 9, slug: 'mri-and-quantum-sensors', playable: true },
+      { title: 'Qubits', description: 'Encode information in controllable two-state quantum systems.', minutes: 9, slug: 'qubits', playable: true },
+      { title: 'Quantum gates and circuits', description: 'Transform amplitudes and build small algorithms.', minutes: 11, slug: 'quantum-gates-and-circuits', playable: true },
+      { title: 'Quantum cryptography', description: 'Use measurement disturbance to reveal eavesdropping.', minutes: 9, slug: 'quantum-cryptography', playable: true },
     ],
   },
   {

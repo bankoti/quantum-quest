@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
+import { ApplicationCanvas } from './ApplicationCanvas'
+import { ApplicationScene } from './applicationLessons'
 import { FoundationCanvas, sampleBands } from './FoundationCanvas'
 import { FoundationScene } from './foundationLessons'
 import { EntanglementCanvas } from './EntanglementCanvas'
@@ -39,6 +41,12 @@ const lessonDefaults: Record<string, { value: number; mode: string }> = {
   'bells-experiment': { value: 50, mode: 'classical' },
   decoherence: { value: 35, mode: 'environment' },
   'schrodingers-cat': { value: 50, mode: 'system' },
+  lasers: { value: 50, mode: 'pump' },
+  semiconductors: { value: 50, mode: 'intrinsic' },
+  'mri-and-quantum-sensors': { value: 55, mode: 'spin' },
+  qubits: { value: 35, mode: 'bit' },
+  'quantum-gates-and-circuits': { value: 0, mode: 'x' },
+  'quantum-cryptography': { value: 50, mode: 'rectilinear' },
 }
 
 const controlDefaults: Record<string, number> = {
@@ -82,6 +90,13 @@ const controlDefaults: Record<string, number> = {
   'decoherence-level': 50,
   'cat-trigger': 50,
   'cat-environment': 75,
+  'pump-rate': 50,
+  'inversion-level': 55,
+  'band-gap': 50,
+  'gate-voltage': 35,
+  'magnetic-field': 55,
+  'rf-frequency': 35,
+  'qubit-angle': 35,
 }
 
 const controlModeDefaults: Record<string, string> = {
@@ -101,6 +116,11 @@ const controlModeDefaults: Record<string, string> = {
   'pair-axis': 'z',
   'bell-model': 'classical',
   'cat-view': 'system',
+  'doping-type': 'intrinsic',
+  'information-model': 'bit',
+  'gate-choice': 'x',
+  'circuit-sequence': 'hh',
+  'qkd-basis': 'rectilinear',
 }
 
 function RangeControl({ label, value, min, max, onChange, low, high }: { label: string; value: number; min: number; max: number; onChange: (value: number) => void; low: string; high: string }) {
@@ -366,6 +386,84 @@ function LessonControls({ lesson, control, value, mode, hits, active, pulse, ans
   if (control === 'cat-view') return <Segmented label="Choose a cat experiment view" value={mode} onChange={setMode} options={[{ value: 'system', label: 'Apparatus', icon: '→' }, { value: 'branches', label: 'Branches', icon: '⑂' }]} />
   if (control === 'cat-environment') return <RangeControl label="Environmental contact" value={value} min={0} max={100} onChange={setValue} low="Ideal isolation" high="Everyday world" />
 
+  if (control === 'pump-rate') return <RangeControl label="Pump rate" value={value} min={0} max={100} onChange={setValue} low="No pumping" high="Strong pumping" />
+  if (control === 'inversion-level') return <RangeControl label="Excited population" value={value} min={0} max={100} onChange={setValue} low="Absorption dominates" high="Strong inversion" />
+  if (control === 'laser-seed') return (
+    <>
+      <div className="qa-action-row">
+        <button className="qa-primary" onClick={() => setPulse(current => current + 1)}>Release seed photon →</button>
+        <button className="qa-icon-button" title="Reset laser cavity" aria-label="Reset laser cavity" onClick={() => setPulse(0)}>↺</button>
+      </div>
+      <p className={`qa-hint ${pulse ? 'qa-success' : ''}`}>{pulse ? `${Math.min(18, 3 + pulse * 3)} photons now reinforce the selected mode.` : 'Seed the inverted gain material to begin amplification.'}</p>
+    </>
+  )
+  if (control === 'band-gap') return <RangeControl label="Band gap" value={value} min={10} max={90} onChange={setValue} low="Narrow gap" high="Wide gap" />
+  if (control === 'doping-type') return <Segmented label="Choose semiconductor doping" value={mode} onChange={setMode} options={[{ value: 'intrinsic', label: 'Intrinsic', icon: '◇' }, { value: 'n', label: 'n-type', icon: '−' }, { value: 'p', label: 'p-type', icon: '+' }]} />
+  if (control === 'gate-voltage') return <RangeControl label="Gate voltage" value={value} min={0} max={100} onChange={setValue} low="Channel off" high="Channel on" />
+  if (control === 'magnetic-field') return <RangeControl label="Magnetic field" value={value} min={0} max={100} onChange={setValue} low="Weak field" high="Strong field" />
+  if (control === 'rf-frequency') return <RangeControl label="Radio frequency" value={value} min={0} max={100} onChange={setValue} low="Below resonance" high="Above resonance" />
+  if (control === 'mri-pulse') return (
+    <>
+      <div className="qa-action-row">
+        <button className="qa-primary" onClick={() => setPulse(current => current + 1)}>Excite sample →</button>
+        <button className="qa-icon-button" title="Reset MRI signal" aria-label="Reset MRI signal" onClick={() => setPulse(0)}>↺</button>
+      </div>
+      <p className={`qa-hint ${pulse ? 'qa-success' : ''}`}>{pulse ? `Signal acquisition ${pulse} recorded.` : 'Apply a radio-frequency pulse to create transverse magnetization.'}</p>
+    </>
+  )
+  if (control === 'information-model') return <Segmented label="Compare information carriers" value={mode} onChange={setMode} options={[{ value: 'bit', label: 'Classical bit', icon: '0' }, { value: 'qubit', label: 'Qubit', icon: 'ψ' }]} />
+  if (control === 'qubit-angle') return <RangeControl label="Qubit rotation" value={value} min={0} max={100} onChange={setValue} low="State |0>" high="State |1>" />
+  if (control === 'qubit-sample') {
+    const probabilityOne = Math.sin(value / 100 * Math.PI / 2) ** 2
+    const sample = () => Math.random() < probabilityOne ? 1 : 0
+    return (
+      <>
+        <div className="qa-action-row">
+          <button className="qa-secondary" onClick={() => setHits(current => [...current, sample()].slice(-400))}>Measure once</button>
+          <button className="qa-primary" onClick={() => setHits(current => [...current, ...Array.from({ length: 100 }, sample)].slice(-400))}>Measure 100 qubits</button>
+          <button className="qa-icon-button" title="Reset qubit measurements" aria-label="Reset qubit measurements" onClick={() => setHits([])}>↺</button>
+        </div>
+        <p className={`qa-hint ${hits.length ? 'qa-success' : ''}`}>{hits.length ? `${hits.length} qubit measurements recorded.` : 'Measure repeated preparations to reveal their probabilities.'}</p>
+      </>
+    )
+  }
+  if (control === 'gate-choice') return <Segmented label="Apply a quantum gate" value={mode} onChange={setMode} options={[{ value: 'x', label: 'X gate', icon: 'X' }, { value: 'h', label: 'H gate', icon: 'H' }, { value: 'z', label: 'Z gate', icon: 'Z' }]} />
+  if (control === 'circuit-sequence') return <Segmented label="Choose an interference circuit" value={mode} onChange={setMode} options={[{ value: 'hh', label: 'H-H', icon: '0' }, { value: 'hzh', label: 'H-Z-H', icon: '1' }]} />
+  if (control === 'circuit-run') {
+    const sample = () => mode === 'hzh' ? 1 : 0
+    return (
+      <>
+        <Segmented label="Choose a circuit to run" value={mode} onChange={next => { setMode(next); setHits([]) }} options={[{ value: 'hh', label: 'H-H', icon: '0' }, { value: 'hzh', label: 'H-Z-H', icon: '1' }]} />
+        <div className="qa-action-row">
+          <button className="qa-primary" onClick={() => setHits(Array.from({ length: 100 }, sample))}>Run 100 shots</button>
+          <button className="qa-icon-button" title="Reset circuit shots" aria-label="Reset circuit shots" onClick={() => setHits([])}>↺</button>
+        </div>
+        <p className={`qa-hint ${hits.length ? 'qa-success' : ''}`}>{hits.length ? `${hits.length} circuit shots recorded.` : 'Run the circuit to expose its final interference result.'}</p>
+      </>
+    )
+  }
+  if (control === 'qkd-basis') return <Segmented label="Choose a BB84 preparation basis" value={mode} onChange={setMode} options={[{ value: 'rectilinear', label: 'Rectilinear', icon: '+' }, { value: 'diagonal', label: 'Diagonal', icon: '×' }]} />
+  if (control === 'eavesdropper') return (
+    <button className={`qa-observer ${active ? 'active' : ''}`} onClick={() => setActive(current => !current)} aria-pressed={active}>
+      <span className="qa-observer-icon" aria-hidden="true">{active ? '◉' : '○'}</span>
+      <span><strong>{active ? 'Eve intercepts every photon' : 'Direct quantum channel'}</strong><small>{active ? 'Wrong-basis measurements add disturbance' : 'No interception simulated'}</small></span>
+    </button>
+  )
+  if (control === 'qkd-run') {
+    const errorProbability = active ? 0.25 : 0.02
+    const sample = () => Math.random() < errorProbability ? 1 : 0
+    const errors = hits.filter(hit => hit === 1).length
+    return (
+      <>
+        <div className="qa-action-row">
+          <button className="qa-primary" onClick={() => setHits(Array.from({ length: 120 }, sample))}>Transmit 120 sifted bits</button>
+          <button className="qa-icon-button" title="Reset key transmission" aria-label="Reset key transmission" onClick={() => setHits([])}>↺</button>
+        </div>
+        <p className={`qa-hint ${hits.length && errors / hits.length <= 0.11 ? 'qa-success' : ''}`}>{hits.length ? `${errors} errors found in ${hits.length} sifted bits.` : `${active ? 'Eve is active.' : 'The channel is clear.'} Transmit a key sample.`}</p>
+      </>
+    )
+  }
+
   if (control === 'check' || control === 'checkpoint') {
     return (
       <div className="qa-check-stack">
@@ -427,8 +525,9 @@ export function InteractiveLessonPage() {
   const currentStep = Math.min(step, lesson.steps.length - 1)
   const current = lesson.steps[currentStep]
   const isCheck = current.control === 'check' || current.control === 'checkpoint'
-  const evidenceControls = ['detections', 'measurement-lab', 'barrier-width', 'orbital-sample', 'spin-measurement', 'correlation-sample', 'entangled-sample', 'bell-run']
-  const canContinue = evidenceControls.includes(current.control ?? '') ? hits.length > 0 : current.control === 'collapse-lab' ? active : current.control === 'spectrum' || current.control === 'photoelectric' ? pulse > 0 : isCheck ? answerState === 'correct' : true
+  const evidenceControls = ['detections', 'measurement-lab', 'barrier-width', 'orbital-sample', 'spin-measurement', 'correlation-sample', 'entangled-sample', 'bell-run', 'qubit-sample', 'circuit-run', 'qkd-run']
+  const pulseControls = ['spectrum', 'photoelectric', 'laser-seed', 'mri-pulse']
+  const canContinue = evidenceControls.includes(current.control ?? '') ? hits.length > 0 : current.control === 'collapse-lab' ? active : pulseControls.includes(current.control ?? '') ? pulse > 0 : isCheck ? answerState === 'correct' : true
 
   const checkAnswers = () => {
     const correct = lesson.questions.every((question, index) => answers[index] === question.correct)
@@ -456,13 +555,15 @@ export function InteractiveLessonPage() {
       <main className="qa-player-main">
         <section className="qa-visual-panel">
           <div className="qa-visual-caption"><span>Interactive model</span><strong>{current.label}</strong></div>
-          {lesson.canvas === 'entanglement'
-            ? <EntanglementCanvas scene={current.scene as EntanglementScene} value={value} mode={mode} hits={hits} active={active} pulse={pulse} accent={lesson.accent} />
-            : lesson.canvas === 'matter'
-              ? <MatterCanvas scene={current.scene as MatterScene} value={value} mode={mode} hits={hits} active={active} pulse={pulse} accent={lesson.accent} />
-              : lesson.canvas === 'language'
-                ? <LanguageCanvas scene={current.scene as LanguageScene} value={value} mode={mode} hits={hits} active={active} pulse={pulse} accent={lesson.accent} />
-                : <FoundationCanvas scene={current.scene as FoundationScene} value={value} mode={mode} hits={hits} active={active} pulse={pulse} accent={lesson.accent} />}
+          {lesson.canvas === 'application'
+            ? <ApplicationCanvas scene={current.scene as ApplicationScene} value={value} mode={mode} hits={hits} active={active} pulse={pulse} accent={lesson.accent} />
+            : lesson.canvas === 'entanglement'
+              ? <EntanglementCanvas scene={current.scene as EntanglementScene} value={value} mode={mode} hits={hits} active={active} pulse={pulse} accent={lesson.accent} />
+              : lesson.canvas === 'matter'
+                ? <MatterCanvas scene={current.scene as MatterScene} value={value} mode={mode} hits={hits} active={active} pulse={pulse} accent={lesson.accent} />
+                : lesson.canvas === 'language'
+                  ? <LanguageCanvas scene={current.scene as LanguageScene} value={value} mode={mode} hits={hits} active={active} pulse={pulse} accent={lesson.accent} />
+                  : <FoundationCanvas scene={current.scene as FoundationScene} value={value} mode={mode} hits={hits} active={active} pulse={pulse} accent={lesson.accent} />}
         </section>
         <section className="qa-lesson-copy">
           <div className="qa-copy-inner">

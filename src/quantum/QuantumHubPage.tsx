@@ -32,7 +32,7 @@ export function QuantumHubPage() {
           <h1>Build a quantum universe you can actually see.</h1>
           <p>Start with ordinary intuition, break it carefully through experiments, then rebuild your understanding around states, probability, atoms, entanglement, and computation.</p>
           <Link className="qa-primary qa-large" to={nextPath}>{availableJourneyComplete ? 'Review the journey' : completed.length ? 'Continue your journey' : 'Start first journey'} <span aria-hidden="true">→</span></Link>
-          <div className="qa-hero-meta"><span>23 interactive lessons</span><span>80+ live models</span><span>No heavy math</span></div>
+          <div className="qa-hero-meta"><span>29 interactive lessons</span><span>100+ live models</span><span>No heavy math</span></div>
         </motion.div>
         <div className="qa-atom-visual" aria-label="Animated atomic state model">
           <div className="qa-atom-core"><i /></div>

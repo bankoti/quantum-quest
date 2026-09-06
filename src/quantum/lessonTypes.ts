@@ -21,7 +21,7 @@ export interface InteractiveLesson {
   number: number
   minutes: number
   accent: string
-  canvas?: 'foundation' | 'language' | 'matter' | 'entanglement'
+  canvas?: 'foundation' | 'language' | 'matter' | 'entanglement' | 'application'
   stageNumber?: number
   stageLabel?: string
   steps: InteractiveStep[]
