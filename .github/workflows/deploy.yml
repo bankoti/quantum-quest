@@ -26,6 +26,13 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm test
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-review-screenshots
+          path: smoke-shots/review-*.png
+          if-no-files-found: ignore
+          retention-days: 7
       - run: npm run build
         env:
           DEPLOY_BASE: /quantum-quest/

@@ -103,12 +103,12 @@ test('invalid saved steps and unavailable browser storage do not crash a lesson'
 async function canvasColors(page) {
   return page.locator('canvas').evaluate(canvas => {
     const ctx = canvas.getContext('2d')
+    const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data
     const colors = new Set()
-    for (let row = 0; row < 35; row += 1) {
-      for (let column = 0; column < 40; column += 1) {
-        const pixel = ctx.getImageData(Math.floor((column + 0.5) * canvas.width / 40), Math.floor((row + 0.5) * canvas.height / 35), 1, 1).data
-        colors.add(Array.from(pixel).join(','))
-      }
+    // Sparse grids can miss thin chart edges and labels even on a fully drawn model.
+    for (let offset = 0; offset < pixels.length; offset += 4) {
+      colors.add(pixels[offset] * 16777216 + pixels[offset + 1] * 65536 + pixels[offset + 2] * 256 + pixels[offset + 3])
+      if (colors.size > 32) break
     }
     return colors.size
   })
