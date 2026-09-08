@@ -3,6 +3,7 @@ import { before, after, test } from 'node:test'
 import { spawn } from 'node:child_process'
 import { mkdir } from 'node:fs/promises'
 import { chromium } from 'playwright'
+import { completeMathJourney } from './math-journey.mjs'
 
 const base = 'http://127.0.0.1:4186'
 let server
@@ -116,7 +117,7 @@ async function canvasColors(page) {
 
 test('every canvas remains drawn after a reduced-motion resize', async () => {
   await withPage(async page => {
-    for (const slug of ['the-quantum-rules-change', 'classical-particles-and-waves', 'the-wavefunction', 'atomic-orbitals', 'entanglement', 'qubits']) {
+    for (const slug of ['the-quantum-rules-change', 'classical-particles-and-waves', 'the-wavefunction', 'atomic-orbitals', 'entanglement', 'qubits', 'complex-numbers']) {
       await page.goto(`${base}/${slug}`)
       await page.waitForTimeout(150)
       await page.setViewportSize({ width: 360, height: 740 })
@@ -140,7 +141,7 @@ test('resizing and changing lessons releases all animation callbacks', async () 
       }
       window.cancelAnimationFrame = id => { window.pendingFrames.delete(id); cancel(id) }
     })
-    for (const slug of ['atomic-orbitals', 'entanglement', 'qubits']) {
+    for (const slug of ['atomic-orbitals', 'entanglement', 'qubits', 'complex-numbers']) {
       await page.goto(`${base}/${slug}`)
       for (const width of [360, 430, 390]) {
         await page.setViewportSize({ width, height: 844 })
@@ -150,6 +151,73 @@ test('resizing and changing lessons releases all animation callbacks', async () 
       await page.waitForTimeout(1500)
       assert.equal(await page.evaluate(() => window.pendingFrames.size), 0, `${slug} retained an animation after closing`)
     }
+  })
+})
+
+test('all six math lessons work on phones and desktop, including equations and quizzes', async () => {
+  await mkdir('smoke-shots', { recursive: true })
+  for (const width of [320, 390, 1280]) {
+    await withPage(async page => {
+      const errors = []
+      page.on('pageerror', error => errors.push(error.message))
+      await completeMathJourney(page, base, async (slug, step) => {
+        for (const details of await page.locator('details').all()) {
+          if (await details.getAttribute('open') === null) await details.locator('summary').click()
+        }
+        await page.evaluate(() => scrollTo(0, 0))
+        await page.screenshot({ path: `smoke-shots/review-math-${slug}-${step}-${width}.png`, fullPage: width < 900 })
+        assert.ok(await canvasColors(page) > 4, `${slug} step ${step} is blank`)
+        assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `${slug} overflows at ${width}`)
+        assert.ok(await page.evaluate(() => document.querySelector('.qa-lesson-nav').getBoundingClientRect().top >= document.querySelector('.qa-copy-inner').getBoundingClientRect().bottom), `${slug} has overlapping navigation`)
+      })
+      assert.equal((await completed(page)).length, 6)
+      await page.getByRole('button', { name: 'Return to course map →' }).click()
+      await page.getByText('6/35 lessons', { exact: true }).waitFor()
+      assert.equal(await page.locator('.qa-playable').count(), 35)
+      assert.equal(await page.locator('.qa-locked').count(), 0)
+      assert.deepEqual(errors, [])
+    }, { viewport: { width, height: 900 }, reducedMotion: 'reduce' })
+  }
+})
+
+test('math preparations clear old trials and invalid saved settings recover safely', async () => {
+  await withPage(async page => {
+    await page.goto(`${base}/operators-and-observables`)
+    await page.getByRole('button', { name: 'Measure 100 trials' }).click()
+    await page.getByRole('button', { name: 'Pauli X', exact: true }).click()
+    assert.equal(await page.getByRole('button', { name: 'Continue →' }).isEnabled(), false)
+    await page.getByRole('button', { name: 'Measure one', exact: true }).click()
+    assert.equal(await page.getByRole('button', { name: 'Continue →' }).isEnabled(), true)
+    await page.getByRole('button', { name: 'Reset trials' }).click()
+    assert.equal(await page.getByRole('button', { name: 'Continue →' }).isEnabled(), false)
+  })
+  for (const [slug, step] of [['hilbert-spaces', 0], ['linear-algebra-intuition', 2]]) {
+    await withPage(async (page, context) => {
+      const errors = []
+      page.on('pageerror', error => errors.push(error.message))
+      await context.addInitScript(({ slug, step }) => localStorage.setItem(`quantum-quest-session:${slug}`, JSON.stringify({ version: 1, step, experiments: { [step]: { value: 99, mode: 'invalid', hits: [], active: false, pulse: 0 } }, answers: {}, answerState: 'idle' })), { slug, step })
+      await page.goto(`${base}/${slug}`)
+      await page.locator('h1').waitFor()
+      assert.ok(await canvasColors(page) > 4)
+      assert.deepEqual(errors, [])
+    }, { reducedMotion: 'reduce' })
+  }
+})
+
+test('the new time-evolution model animates and can be paused', async () => {
+  await withPage(async page => {
+    await page.goto(`${base}/solve-schrodingers-equation`)
+    await page.getByRole('slider').fill('20'); await next(page); await next(page)
+    await page.getByRole('button', { name: 'Two-energy superposition', exact: true }).click()
+    await page.evaluate(() => scrollTo(0, 0))
+    const pixels = () => page.locator('canvas').evaluate(canvas => canvas.toDataURL())
+    const first = await pixels()
+    await page.waitForTimeout(350)
+    assert.notEqual(await pixels(), first)
+    await page.getByRole('button', { name: 'Pause animation' }).click()
+    const paused = await pixels()
+    await page.waitForTimeout(200)
+    assert.equal(await pixels(), paused)
   })
 })
 

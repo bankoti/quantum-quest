@@ -13,6 +13,7 @@ export interface InteractiveStep {
   body: string
   scene: string
   control?: string
+  equation?: { expression: string; explanation: string }
   modelNote?: string
   source?: { title: string; url: string }
 }
@@ -23,7 +24,7 @@ export interface InteractiveLesson {
   number: number
   minutes: number
   accent: string
-  canvas?: 'foundation' | 'language' | 'matter' | 'entanglement' | 'application'
+  canvas?: 'foundation' | 'language' | 'matter' | 'entanglement' | 'application' | 'math'
   stageNumber?: number
   stageLabel?: string
   steps: InteractiveStep[]

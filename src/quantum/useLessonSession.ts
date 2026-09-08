@@ -1,6 +1,7 @@
 import { Dispatch, SetStateAction, useEffect, useState } from 'react'
 import { InteractiveLesson } from './lessonTypes'
 import { getSavedStep, readLessonSession, saveLessonSession, saveStep } from './progress'
+import { validMathSettings } from './mathLessons'
 
 export type AnswerState = 'idle' | 'correct' | 'wrong'
 type Experiment = { value: number; mode: string; hits: number[]; active: boolean; pulse: number }
@@ -30,7 +31,7 @@ export function useLessonSession(lesson: InteractiveLesson, defaults: Defaults, 
     const experiments: Record<number, Experiment> = {}
     for (let index = 0; index < lesson.steps.length; index += 1) {
       const saved = resumable ? stored.experiments?.[index] : undefined
-      if (isExperiment(saved)) experiments[index] = saved
+      if (isExperiment(saved) && (lesson.canvas !== 'math' || validMathSettings(lesson.steps[index].control ?? '', saved))) experiments[index] = saved
       else if (index <= step) experiments[index] = createExperiment(index, experiments[index - 1])
     }
     const answers: Record<number, number> = {}

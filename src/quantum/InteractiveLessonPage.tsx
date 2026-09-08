@@ -16,6 +16,9 @@ import { markLessonCompleted } from './progress'
 import { AnswerState, useLessonSession } from './useLessonSession'
 import { LessonVisual } from './LessonVisual'
 import { AnswerOptions } from './AnswerOptions'
+import { MathCanvas } from './MathCanvas'
+import { MathLessonControls } from './MathLessonControls'
+import { MATH_CONTROL_VALUES, MATH_CONTROL_MODES, MATH_EVIDENCE_CONTROLS } from './mathLessons'
 import './quantum.css'
 
 const lessonDefaults: Record<string, { value: number; mode: string }> = {
@@ -50,6 +53,7 @@ const lessonDefaults: Record<string, { value: number; mode: string }> = {
 }
 
 const controlDefaults: Record<string, number> = {
+  ...MATH_CONTROL_VALUES,
   'particle-speed': 45,
   'wave-frequency': 45,
   'energy-mode': 50,
@@ -100,6 +104,7 @@ const controlDefaults: Record<string, number> = {
 }
 
 const controlModeDefaults: Record<string, string> = {
+  ...MATH_CONTROL_MODES,
   'model-switch': 'particle',
   'energy-mode': 'continuous',
   'wave-view': 'amplitude',
@@ -184,6 +189,7 @@ function LessonControls({ lesson, control, value, mode, hits, active, pulse, ans
   setAnswerState: React.Dispatch<React.SetStateAction<AnswerState>>
   checkAnswers: () => void
 }) {
+  if (lesson.canvas === 'math' && control && control !== 'check' && control !== 'checkpoint') return <MathLessonControls control={control} value={value} mode={mode} hits={hits} setValue={setValue} setMode={setMode} setHits={setHits} />
   if (control === 'particle-speed') return <RangeControl label="Particle speed" value={value} min={10} max={100} onChange={setValue} low="Slow" high="Fast" />
   if (control === 'wave-frequency') return <RangeControl label="Wave frequency" value={value} min={10} max={100} onChange={setValue} low="Long rhythm" high="Rapid rhythm" />
   if (control === 'model-switch') return <Segmented label="Choose a classical model" value={mode} onChange={setMode} options={[{ value: 'particle', label: 'Particle', icon: '●' }, { value: 'wave', label: 'Wave', icon: '∿' }]} />
@@ -496,9 +502,9 @@ function LessonPlayer({ lesson }: { lesson: InteractiveLesson }) {
   const currentStep = Math.min(step, lesson.steps.length - 1)
   const current = lesson.steps[currentStep]
   const isCheck = current.control === 'check' || current.control === 'checkpoint'
-  const evidenceControls = ['detections', 'measurement-lab', 'barrier-width', 'orbital-sample', 'spin-measurement', 'correlation-sample', 'entangled-sample', 'bell-run', 'qubit-sample', 'circuit-run', 'qkd-run']
+  const evidenceControls = [...MATH_EVIDENCE_CONTROLS, 'detections', 'measurement-lab', 'barrier-width', 'orbital-sample', 'spin-measurement', 'correlation-sample', 'entangled-sample', 'bell-run', 'qubit-sample', 'circuit-run', 'qkd-run']
   const pulseControls = ['spectrum', 'photoelectric', 'laser-seed', 'mri-pulse']
-  const canContinue = evidenceControls.includes(current.control ?? '') ? hits.length > 0 : current.control === 'collapse-lab' ? active : pulseControls.includes(current.control ?? '') ? pulse > 0 : isCheck ? answerState === 'correct' : true
+  const canContinue = current.control === 'box-boundary' ? value % 10 === 0 : evidenceControls.includes(current.control ?? '') ? hits.length > 0 : current.control === 'collapse-lab' ? active : pulseControls.includes(current.control ?? '') ? pulse > 0 : isCheck ? answerState === 'correct' : true
 
   const checkAnswers = () => {
     const correct = lesson.questions.every((question, index) => answers[index] === question.correct)
@@ -524,7 +530,9 @@ function LessonPlayer({ lesson }: { lesson: InteractiveLesson }) {
 
       <main className="qa-player-main">
         <LessonVisual label={current.label}>
-          {lesson.canvas === 'application'
+          {lesson.canvas === 'math'
+            ? <MathCanvas scene={current.scene} value={value} mode={mode} hits={hits} accent={lesson.accent} />
+            : lesson.canvas === 'application'
             ? <ApplicationCanvas scene={current.scene as ApplicationScene} value={value} mode={mode} hits={hits} active={active} pulse={pulse} accent={lesson.accent} />
             : lesson.canvas === 'entanglement'
               ? <EntanglementCanvas scene={current.scene as EntanglementScene} value={value} mode={mode} hits={hits} active={active} pulse={pulse} accent={lesson.accent} />
@@ -541,6 +549,7 @@ function LessonPlayer({ lesson }: { lesson: InteractiveLesson }) {
             <h1>{current.title}</h1>
             <p className="qa-lesson-lede">{current.lede}</p>
             <p>{current.body}</p>
+            {current.equation && <details className="qa-model-note"><summary>The math</summary><code className="qa-equation">{current.equation.expression}</code><p>{current.equation.explanation}</p></details>}
             {current.modelNote && <details className="qa-model-note"><summary>About this model</summary><p>{current.modelNote}</p>{current.source && <a href={current.source.url} target="_blank" rel="noreferrer">{current.source.title}</a>}</details>}
             {currentStep === lesson.steps.length - 1 ? (
               <>

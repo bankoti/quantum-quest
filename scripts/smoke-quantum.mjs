@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { spawn } from 'node:child_process'
 import { chromium } from 'playwright'
+import { completeMathJourney } from './math-journey.mjs'
 
 const root = path.resolve(import.meta.dirname, '..')
 const shotDir = path.join(root, 'smoke-shots')
@@ -12,12 +13,13 @@ const base = `http://localhost:${port}`
 fs.mkdirSync(shotDir, { recursive: true })
 const staticRoutePages = fs.readdirSync(path.join(root, 'dist'), { withFileTypes: true })
   .filter(entry => entry.isDirectory() && fs.existsSync(path.join(root, 'dist', entry.name, 'index.html')))
-if (staticRoutePages.length !== 29) throw new Error(`Expected 29 static lesson routes, found ${staticRoutePages.length}`)
+if (staticRoutePages.length !== 35) throw new Error(`Expected 35 static lesson routes, found ${staticRoutePages.length}`)
 if (!fs.existsSync(path.join(root, 'dist', '404.html'))) throw new Error('Expected a GitHub Pages fallback document')
-const server = spawn(`npx vite preview --port ${port} --strictPort`, { cwd: root, shell: true, stdio: 'inherit' })
+const server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--port', String(port), '--strictPort'], { cwd: root, stdio: 'inherit' })
 
 async function waitForServer() {
   for (let attempt = 0; attempt < 40; attempt += 1) {
+    if (server.exitCode !== null) throw new Error('Quantum preview server exited before becoming ready')
     await new Promise(resolve => setTimeout(resolve, 500))
     if (await fetch(base).then(response => response.ok).catch(() => false)) return
   }
@@ -43,23 +45,20 @@ async function expectCanvasDrawn(page) {
     const context = canvas.getContext('2d')
     if (!context) return 0
     const samples = new Set()
-    for (let row = 0; row < 30; row += 1) {
-      for (let column = 0; column < 40; column += 1) {
-        const x = Math.min(canvas.width - 1, Math.floor((column + 0.5) * canvas.width / 40))
-        const y = Math.min(canvas.height - 1, Math.floor((row + 0.5) * canvas.height / 30))
-        const pixel = context.getImageData(x, y, 1, 1).data
-        samples.add(`${pixel[0]},${pixel[1]},${pixel[2]},${pixel[3]}`)
-      }
+    const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data
+    for (let offset = 0; offset < pixels.length; offset += 4) {
+      samples.add(pixels[offset] * 16777216 + pixels[offset + 1] * 65536 + pixels[offset + 2] * 256 + pixels[offset + 3])
+      if (samples.size > 32) break
     }
     return samples.size
   })
   if (colors < 4) throw new Error(`Quantum canvas looks blank (${colors} sampled colors)`)
 }
 
-await waitForServer()
-const browser = await chromium.launch({ headless: true })
-
+let browser
 try {
+  await waitForServer()
+  browser = await chromium.launch({ headless: true })
   const desktop = await browser.newContext({ viewport: { width: 1280, height: 800 } })
   const desktopPage = await desktop.newPage()
   const desktopErrors = collectErrors(desktopPage)
@@ -68,7 +67,7 @@ try {
   const lessonCount = await desktopPage.locator('.qa-lesson-card').count()
   if (lessonCount !== 35) throw new Error(`Expected 35 curriculum lessons, found ${lessonCount}`)
   const playableCount = await desktopPage.locator('.qa-playable').count()
-  if (playableCount !== 29) throw new Error(`Expected 29 playable lessons, found ${playableCount}`)
+  if (playableCount !== 35) throw new Error(`Expected 35 playable lessons, found ${playableCount}`)
   await expectNoHorizontalOverflow(desktopPage, 'desktop hub')
   await desktopPage.screenshot({ path: path.join(shotDir, 'quantum-hub-desktop.png'), fullPage: false })
   await desktopPage.goto(`${base}/the-wavefunction`, { waitUntil: 'networkidle' })
@@ -582,15 +581,29 @@ try {
   completed = await page.evaluate(() => JSON.parse(localStorage.getItem('quantum-quest-completed-lessons') || '[]'))
   if (completed.length !== 29) throw new Error(`Expected 29 completed lessons, found ${completed.length}`)
   await page.screenshot({ path: path.join(shotDir, 'applications-stage-complete-mobile.png'), fullPage: false })
+  await page.getByRole('button', { name: 'Start next lesson →' }).click()
+  await page.getByRole('heading', { name: 'A complex number is an arrow with a phase' }).waitFor()
+  await completeMathJourney(page, base, async (slug, step) => {
+    await page.evaluate(() => scrollTo(0, 0))
+    await expectCanvasDrawn(page)
+    await expectNoHorizontalOverflow(page, `${slug} step ${step}`)
+  })
+  completed = await page.evaluate(() => JSON.parse(localStorage.getItem('quantum-quest-completed-lessons') || '[]'))
+  if (completed.length !== 35) throw new Error(`Expected 35 completed lessons, found ${completed.length}`)
+  await page.screenshot({ path: path.join(shotDir, 'all-stages-complete-mobile.png'), fullPage: true })
   await page.getByRole('button', { name: 'Return to course map →' }).click()
-  await page.getByText('29/35 lessons').waitFor()
+  await page.getByText('35/35 lessons', { exact: true }).waitFor()
   await page.waitForFunction(() => window.scrollY === 0)
   const hubScroll = await page.evaluate(() => window.scrollY)
   if (hubScroll !== 0) throw new Error(`Course map returned at scroll position ${hubScroll}`)
   if (errors.length) throw new Error(errors.join(' | '))
   await mobile.close()
-  console.log('Quantum smoke passed: 35-lesson hub, 29 playable lessons, progress, and complete mobile journey')
+  console.log('Quantum smoke passed: 35 playable lessons, 35 static routes, progress, and complete mobile journey')
 } finally {
-  await browser.close()
-  server.kill()
+  await browser?.close()
+  if (server.exitCode === null) {
+    const exited = new Promise(resolve => server.once('exit', resolve))
+    server.kill()
+    await exited
+  }
 }

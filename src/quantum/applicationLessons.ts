@@ -239,7 +239,7 @@ export const APPLICATION_LESSON_CONTENT: InteractiveLesson[] = [
     takeaways: ['Ideal quantum gates are reversible state transformations.', 'Phase changes become observable through later interference.', 'Quantum circuits arrange amplitudes so selected outcomes are enhanced.'],
   },
   {
-    slug: 'quantum-cryptography', title: 'Quantum cryptography', number: 29, minutes: 9, accent: '#34d399', canvas: 'application', stageNumber: 5, stageLabel: 'Applications',
+    slug: 'quantum-cryptography', title: 'Quantum cryptography', number: 29, minutes: 9, accent: '#34d399', canvas: 'application', stageNumber: 5, stageLabel: 'Applications', nextSlug: 'complex-numbers',
     steps: [
       {
         label: 'Encode', eyebrow: 'BB84 states', title: 'Two incompatible bases encode the same bit values',

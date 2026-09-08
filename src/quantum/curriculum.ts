@@ -97,12 +97,12 @@ export const QUANTUM_STAGES: QuantumStage[] = [
     description: 'Add the mathematical structure once the physical ideas have somewhere to land.',
     accent: '#f472b6',
     lessons: [
-      { title: 'Complex numbers', description: 'Use phase and rotation as the geometry behind amplitudes.', minutes: 12 },
-      { title: 'Linear algebra intuition', description: 'Read vectors and matrices as states and transformations.', minutes: 14 },
-      { title: 'Operators and observables', description: 'Connect measurable quantities to transformations.', minutes: 12 },
-      { title: 'Hilbert spaces', description: 'Generalize the geometry that holds quantum states.', minutes: 13 },
-      { title: "Solve Schrodinger's equation", description: 'Work through the simplest systems with real mathematics.', minutes: 16 },
-      { title: 'Path integrals and fields', description: 'Look beyond particles toward modern quantum theory.', minutes: 15 },
+      { title: 'Complex numbers', description: 'Use phase and rotation as the geometry behind amplitudes.', minutes: 12, slug: 'complex-numbers', playable: true },
+      { title: 'Linear algebra intuition', description: 'Read vectors and matrices as states and transformations.', minutes: 14, slug: 'linear-algebra-intuition', playable: true },
+      { title: 'Operators and observables', description: 'Connect measurable quantities to transformations.', minutes: 12, slug: 'operators-and-observables', playable: true },
+      { title: 'Hilbert spaces', description: 'Generalize the geometry that holds quantum states.', minutes: 13, slug: 'hilbert-spaces', playable: true },
+      { title: "Solve Schrodinger's equation", description: 'Work through the simplest systems with real mathematics.', minutes: 16, slug: 'solve-schrodingers-equation', playable: true },
+      { title: 'Path integrals and fields', description: 'Look beyond particles toward modern quantum theory.', minutes: 15, slug: 'path-integrals-and-fields', playable: true },
     ],
   },
 ]

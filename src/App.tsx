@@ -1,9 +1,10 @@
-import { useLayoutEffect } from 'react'
+import { lazy, Suspense, useLayoutEffect } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { QuantumHubPage } from './quantum/QuantumHubPage'
 import { QuantumLessonPage } from './quantum/QuantumLessonPage'
-import { InteractiveLessonPage } from './quantum/InteractiveLessonPage'
 import { QUANTUM_LESSON_PATH } from './quantum/curriculum'
+
+const InteractiveLessonPage = lazy(() => import('./quantum/InteractiveLessonPage').then(module => ({ default: module.InteractiveLessonPage })))
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -26,12 +27,12 @@ export function App() {
   return (
     <>
       <ScrollToTop />
-      <Routes>
+      <Suspense fallback={<div className="qa-page qa-route-loading" role="status">Loading lesson...</div>}><Routes>
         <Route path="/" element={<QuantumHubPage />} />
         <Route path={QUANTUM_LESSON_PATH} element={<QuantumLessonPage />} />
         <Route path="/:lessonSlug" element={<InteractiveLessonPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      </Routes></Suspense>
     </>
   )
 }
