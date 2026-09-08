@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react'
+import { useContext, useEffect, useRef } from 'react'
+import { animateCanvas, CanvasAnimationContext } from './canvasAnimation'
 
 export type QuantumScene = 'scale' | 'duality' | 'photons' | 'slits' | 'probability' | 'check' | 'complete'
 
@@ -26,6 +27,7 @@ export function sampleInterference(): number {
 
 export function QuantumCanvas({ scene, scaleIndex, dualityMode, photonHits, observed, measurement }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const animation = useContext(CanvasAnimationContext)
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -33,11 +35,9 @@ export function QuantumCanvas({ scene, scaleIndex, dualityMode, photonHits, obse
     const context = canvas.getContext('2d')
     if (!context) return
 
-    let frame = 0
     let width = 0
     let height = 0
-    let animationFrame = 0
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const reducedMotion = animation.paused
 
     const resize = () => {
       const bounds = canvas.getBoundingClientRect()
@@ -297,7 +297,6 @@ export function QuantumCanvas({ scene, scaleIndex, dualityMode, photonHits, obse
     }
 
     const render = (time: number) => {
-      frame += 1
       drawGrid()
       if (scene === 'scale') drawScale(time)
       if (scene === 'duality') drawDuality(time)
@@ -306,18 +305,10 @@ export function QuantumCanvas({ scene, scaleIndex, dualityMode, photonHits, obse
       if (scene === 'probability') drawProbability(time)
       if (scene === 'check') drawAtom(time, false)
       if (scene === 'complete') drawAtom(time, true)
-      if (!reducedMotion || frame < 2) animationFrame = requestAnimationFrame(render)
     }
 
-    resize()
-    const observer = new ResizeObserver(resize)
-    observer.observe(canvas)
-    animationFrame = requestAnimationFrame(render)
-    return () => {
-      cancelAnimationFrame(animationFrame)
-      observer.disconnect()
-    }
-  }, [scene, scaleIndex, dualityMode, photonHits, observed, measurement])
+    return animateCanvas(canvas, resize, render, animation)
+  }, [animation, scene, scaleIndex, dualityMode, photonHits, observed, measurement])
 
   return <canvas ref={canvasRef} className="qa-canvas" aria-label={`Animated ${scene} quantum experiment`} />
 }

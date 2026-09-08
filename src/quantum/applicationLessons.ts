@@ -36,6 +36,7 @@ export const APPLICATION_LESSON_CONTENT: InteractiveLesson[] = [
         lede: 'A laser begins by feeding energy into a material with discrete atomic or molecular levels.',
         body: 'Raise the pump rate. Atoms absorb energy and move upward, while spontaneous emissions leave with unrelated directions and phases.',
         scene: 'laser-pump', control: 'pump-rate',
+        modelNote: 'These two lines show the lasing transition only. Real laser pumping uses additional energy levels or other energy-transfer processes to establish inversion; resonant pumping of an isolated two-level system cannot do this.',
       },
       {
         label: 'Invert', eyebrow: 'Outnumber absorption', title: 'A population inversion makes amplification possible',
@@ -118,12 +119,14 @@ export const APPLICATION_LESSON_CONTENT: InteractiveLesson[] = [
         lede: 'Hydrogen nuclei have spin and magnetic moments with quantized orientations relative to a field.',
         body: 'Increase the magnetic field. Almost equal populations remain, but a small excess in the lower-energy orientation creates measurable net magnetization.',
         scene: 'spin-ensemble', control: 'magnetic-field',
+        modelNote: 'The population difference is deliberately exaggerated. In typical MRI conditions, the excess is only a few nuclei per million; the large number of nuclei makes the net signal measurable. The arrows represent magnetic moments, not little spinning balls.',
       },
       {
         label: 'Tune', eyebrow: 'Resonant control', title: 'Spins respond when the radio pulse matches their precession',
         lede: 'The resonance frequency grows with the magnetic field and depends on the kind of nucleus.',
         body: 'Tune the radio frequency across resonance. At the matching frequency, the pulse efficiently rotates the ensemble magnetization.',
         scene: 'resonance-curve', control: 'rf-frequency',
+        modelNote: 'This frequency scan holds the magnetic field fixed. The slider uses relative units; a stronger field would shift the entire resonance peak to a higher frequency.',
       },
       {
         label: 'Listen', eyebrow: 'Turn spin into signal', title: 'Relaxing spins induce a fading electrical signal',
@@ -200,6 +203,8 @@ export const APPLICATION_LESSON_CONTENT: InteractiveLesson[] = [
         lede: 'X flips the poles, H moves between pole and equator, and Z changes relative phase.',
         body: 'Apply different gates to |0>. X flips it, H creates an equal superposition, and Z leaves this input unchanged because there is no |1> amplitude to phase-flip.',
         scene: 'gate-transform', control: 'gate-choice',
+        modelNote: 'The faint arrow is the input |0>; the colored arrow is the output. These pure states stay on the surface of the Bloch sphere under ideal gates. Z changes the relative phase only when both basis amplitudes are present.',
+        source: { title: 'IBM Quantum: the Bloch sphere', url: 'https://quantum.cloud.ibm.com/learning/en/courses/general-formulation-of-quantum-information/density-matrices/bloch-sphere' },
       },
       {
         label: 'Compose', eyebrow: 'Interference in a circuit', title: 'Gate sequences make computational paths cancel or reinforce',
@@ -251,8 +256,10 @@ export const APPLICATION_LESSON_CONTENT: InteractiveLesson[] = [
       {
         label: 'Sift', eyebrow: 'Estimate the error rate', title: 'Alice and Bob compare bases, then test a public subset',
         lede: 'They keep positions where their bases matched and sacrifice some bits to estimate disturbance.',
-        body: 'Transmit a batch. A high error rate aborts the key; a low rate can proceed through error correction and privacy amplification.',
+        body: 'Compare a public sample with and without interception. These test bits are discarded. A high error rate aborts the key; a low rate is only the beginning of further checks and processing.',
         scene: 'qkd-key', control: 'qkd-run',
+        modelNote: 'Without Eve, this toy channel has 2% background errors. Full intercept-and-resend uses the ideal 25% error rate. The 11% alarm illustrates an idealized asymptotic BB84 limit, not a security guarantee for 120 bits. A real protocol accounts for finite samples, authenticates messages, and performs error correction and privacy amplification.',
+        source: { title: 'IBM Quantum: quantum key distribution', url: 'https://quantum.cloud.ibm.com/learning/en/modules/computer-science/quantum-key-distribution' },
       },
       {
         label: 'Checkpoint', eyebrow: 'Applications checkpoint', title: 'Can you connect quantum rules to working devices?',

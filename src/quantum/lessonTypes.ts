@@ -13,6 +13,8 @@ export interface InteractiveStep {
   body: string
   scene: string
   control?: string
+  modelNote?: string
+  source?: { title: string; url: string }
 }
 
 export interface InteractiveLesson {

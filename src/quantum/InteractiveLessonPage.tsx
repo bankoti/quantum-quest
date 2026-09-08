@@ -1,4 +1,3 @@
-import { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { ApplicationCanvas } from './ApplicationCanvas'
 import { ApplicationScene } from './applicationLessons'
@@ -13,10 +12,11 @@ import { MatterScene } from './matterLessons'
 import { getInteractiveLesson } from './interactiveLessons'
 import { ConceptQuestion, InteractiveLesson } from './lessonTypes'
 import { lessonPath } from './curriculum'
-import { getSavedStep, markLessonCompleted, saveStep } from './progress'
+import { markLessonCompleted } from './progress'
+import { AnswerState, useLessonSession } from './useLessonSession'
+import { LessonVisual } from './LessonVisual'
+import { AnswerOptions } from './AnswerOptions'
 import './quantum.css'
-
-type AnswerState = 'idle' | 'correct' | 'wrong'
 
 const lessonDefaults: Record<string, { value: number; mode: string }> = {
   'classical-particles-and-waves': { value: 45, mode: 'particle' },
@@ -137,11 +137,20 @@ function Segmented({ label, value, options, onChange }: { label: string; value: 
   return (
     <div className="qa-segmented" role="group" aria-label={label}>
       {options.map(option => (
-        <button key={option.value} className={value === option.value ? 'active' : ''} onClick={() => onChange(option.value)}>
+        <button key={option.value} aria-pressed={value === option.value} className={value === option.value ? 'active' : ''} onClick={() => onChange(option.value)}>
           <span aria-hidden="true">{option.icon}</span>{option.label}
         </button>
       ))}
     </div>
+  )
+}
+
+function ChannelControl({ active, onChange }: { active: boolean; onChange: (active: boolean) => void }) {
+  return (
+    <button className={`qa-observer ${active ? 'active' : ''}`} onClick={() => onChange(!active)} aria-pressed={active}>
+      <span className="qa-observer-icon" aria-hidden="true">{active ? '◉' : '○'}</span>
+      <span><strong>{active ? 'Eve intercepts every photon' : 'Direct quantum channel'}</strong><small>{active ? 'Wrong-basis measurements add disturbance' : 'No interception simulated'}</small></span>
+    </button>
   )
 }
 
@@ -150,16 +159,8 @@ function QuestionBlock({ question, index, answer, answerState, onAnswer }: { que
     <section className="qa-question-block">
       <p className="qa-question-number">Case {index + 1}</p>
       <h2>{question.question}</h2>
-      <div className="qa-answer-list" role="radiogroup" aria-label={`Case ${index + 1} answers`}>
-        {question.options.map((option, optionIndex) => {
-          const correct = answerState === 'correct' && optionIndex === question.correct
-          return (
-            <button key={option} role="radio" aria-checked={answer === optionIndex} className={`${answer === optionIndex ? 'selected' : ''} ${correct ? 'correct' : ''}`} onClick={() => onAnswer(optionIndex)}>
-              <span className="qa-answer-marker">{String.fromCharCode(65 + optionIndex)}</span><span>{option}</span>{correct && <span aria-hidden="true">✓</span>}
-            </button>
-          )
-        })}
-      </div>
+      <AnswerOptions label={`Case ${index + 1} answers`} options={question.options} answer={answer} correct={question.correct} state={answerState} onAnswer={onAnswer} />
+      {answerState === 'wrong' && <p className={`qa-question-feedback ${answer === question.correct ? 'qa-success' : ''}`}>{answer === question.correct ? question.success : 'Revisit this connection and try another answer.'}</p>}
     </section>
   )
 }
@@ -418,6 +419,10 @@ function LessonControls({ lesson, control, value, mode, hits, active, pulse, ans
     const sample = () => Math.random() < probabilityOne ? 1 : 0
     return (
       <>
+        <dl className="qa-result-comparison" aria-label="Prepared qubit probabilities">
+          <div><dt>Expected 0</dt><dd>{Math.round((1 - probabilityOne) * 100)}%</dd>{hits.length > 0 && <small>Observed {hits.filter(hit => hit === 0).length} / {hits.length}</small>}</div>
+          <div><dt>Expected 1</dt><dd>{Math.round(probabilityOne * 100)}%</dd>{hits.length > 0 && <small>Observed {hits.filter(hit => hit === 1).length} / {hits.length}</small>}</div>
+        </dl>
         <div className="qa-action-row">
           <button className="qa-secondary" onClick={() => setHits(current => [...current, sample()].slice(-400))}>Measure once</button>
           <button className="qa-primary" onClick={() => setHits(current => [...current, ...Array.from({ length: 100 }, sample)].slice(-400))}>Measure 100 qubits</button>
@@ -443,23 +448,19 @@ function LessonControls({ lesson, control, value, mode, hits, active, pulse, ans
     )
   }
   if (control === 'qkd-basis') return <Segmented label="Choose a BB84 preparation basis" value={mode} onChange={setMode} options={[{ value: 'rectilinear', label: 'Rectilinear', icon: '+' }, { value: 'diagonal', label: 'Diagonal', icon: '×' }]} />
-  if (control === 'eavesdropper') return (
-    <button className={`qa-observer ${active ? 'active' : ''}`} onClick={() => setActive(current => !current)} aria-pressed={active}>
-      <span className="qa-observer-icon" aria-hidden="true">{active ? '◉' : '○'}</span>
-      <span><strong>{active ? 'Eve intercepts every photon' : 'Direct quantum channel'}</strong><small>{active ? 'Wrong-basis measurements add disturbance' : 'No interception simulated'}</small></span>
-    </button>
-  )
+  if (control === 'eavesdropper') return <ChannelControl active={active} onChange={setActive} />
   if (control === 'qkd-run') {
     const errorProbability = active ? 0.25 : 0.02
     const sample = () => Math.random() < errorProbability ? 1 : 0
     const errors = hits.filter(hit => hit === 1).length
     return (
       <>
+        <ChannelControl active={active} onChange={next => { setActive(next); setHits([]) }} />
         <div className="qa-action-row">
-          <button className="qa-primary" onClick={() => setHits(Array.from({ length: 120 }, sample))}>Transmit 120 sifted bits</button>
+          <button className="qa-primary" onClick={() => setHits(Array.from({ length: 120 }, sample))}>Compare 120 test bits</button>
           <button className="qa-icon-button" title="Reset key transmission" aria-label="Reset key transmission" onClick={() => setHits([])}>↺</button>
         </div>
-        <p className={`qa-hint ${hits.length && errors / hits.length <= 0.11 ? 'qa-success' : ''}`}>{hits.length ? `${errors} errors found in ${hits.length} sifted bits.` : `${active ? 'Eve is active.' : 'The channel is clear.'} Transmit a key sample.`}</p>
+        <p className={`qa-hint ${hits.length && errors / hits.length <= 0.11 ? 'qa-success' : ''}`} aria-live="polite">{hits.length ? `${errors} errors found in ${hits.length} test bits.` : `${active ? 'Eve is active.' : 'The channel has 2% background noise.'} Compare a public sample.`}</p>
       </>
     )
   }
@@ -483,44 +484,14 @@ function LessonControls({ lesson, control, value, mode, hits, active, pulse, ans
 
 export function InteractiveLessonPage() {
   const { lessonSlug = '' } = useParams()
-  const lesson = useMemo(() => getInteractiveLesson(lessonSlug), [lessonSlug])
+  const lesson = getInteractiveLesson(lessonSlug)
+  return lesson ? <LessonPlayer key={lesson.slug} lesson={lesson} /> : <Navigate to="/" replace />
+}
+
+function LessonPlayer({ lesson }: { lesson: InteractiveLesson }) {
   const navigate = useNavigate()
-  const defaults = lessonDefaults[lessonSlug] ?? { value: 50, mode: 'particle' }
-  const [step, setStep] = useState(0)
-  const [value, setValue] = useState(defaults.value)
-  const [mode, setMode] = useState(defaults.mode)
-  const [hits, setHits] = useState<number[]>([])
-  const [active, setActive] = useState(false)
-  const [pulse, setPulse] = useState(0)
-  const [answers, setAnswers] = useState<Record<number, number>>({})
-  const [answerState, setAnswerState] = useState<AnswerState>('idle')
-
-  useEffect(() => {
-    if (!lesson) return
-    const saved = getSavedStep(lesson.slug)
-    setStep(saved < lesson.steps.length - 1 ? saved : 0)
-    const nextDefaults = lessonDefaults[lesson.slug] ?? { value: 50, mode: 'particle' }
-    setValue(nextDefaults.value)
-    setMode(nextDefaults.mode)
-    setHits([])
-    setActive(false)
-    setPulse(0)
-    setAnswers({})
-    setAnswerState('idle')
-  }, [lesson])
-
-  useEffect(() => {
-    if (!lesson) return
-    saveStep(lesson.slug, step)
-    if (step === lesson.steps.length - 1) markLessonCompleted(lesson.slug)
-    const control = lesson.steps[step]?.control
-    if (control && control in controlDefaults) setValue(controlDefaults[control])
-    if (control && control in controlModeDefaults) setMode(controlModeDefaults[control])
-    setAnswerState('idle')
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }, [lesson, step])
-
-  if (!lesson) return <Navigate to="/" replace />
+  const defaults = lessonDefaults[lesson.slug] ?? { value: 50, mode: 'particle' }
+  const { step, value, mode, hits, active, pulse, answers, answerState, setValue, setMode, setHits, setActive, setPulse, setAnswers, setAnswerState, goTo } = useLessonSession(lesson, defaults, controlDefaults, controlModeDefaults)
 
   const currentStep = Math.min(step, lesson.steps.length - 1)
   const current = lesson.steps[currentStep]
@@ -535,10 +506,9 @@ export function InteractiveLessonPage() {
     if (correct) markLessonCompleted(lesson.slug)
   }
 
-  const previous = () => setStep(currentStep => Math.max(0, currentStep - 1))
+  const previous = () => goTo(step - 1)
   const next = () => {
-    setAnswerState('idle')
-    setStep(currentStep => Math.min(lesson.steps.length - 1, currentStep + 1))
+    if (canContinue) goTo(step + 1)
   }
 
   return (
@@ -553,8 +523,7 @@ export function InteractiveLessonPage() {
       </header>
 
       <main className="qa-player-main">
-        <section className="qa-visual-panel">
-          <div className="qa-visual-caption"><span>Interactive model</span><strong>{current.label}</strong></div>
+        <LessonVisual label={current.label}>
           {lesson.canvas === 'application'
             ? <ApplicationCanvas scene={current.scene as ApplicationScene} value={value} mode={mode} hits={hits} active={active} pulse={pulse} accent={lesson.accent} />
             : lesson.canvas === 'entanglement'
@@ -564,7 +533,7 @@ export function InteractiveLessonPage() {
                 : lesson.canvas === 'language'
                   ? <LanguageCanvas scene={current.scene as LanguageScene} value={value} mode={mode} hits={hits} active={active} pulse={pulse} accent={lesson.accent} />
                   : <FoundationCanvas scene={current.scene as FoundationScene} value={value} mode={mode} hits={hits} active={active} pulse={pulse} accent={lesson.accent} />}
-        </section>
+        </LessonVisual>
         <section className="qa-lesson-copy">
           <div className="qa-copy-inner">
             <p className="qa-lesson-kicker">{lesson.stageLabel ?? 'Foundation'} {String(lesson.number).padStart(2, '0')} · {lesson.minutes} min</p>
@@ -572,6 +541,7 @@ export function InteractiveLessonPage() {
             <h1>{current.title}</h1>
             <p className="qa-lesson-lede">{current.lede}</p>
             <p>{current.body}</p>
+            {current.modelNote && <details className="qa-model-note"><summary>About this model</summary><p>{current.modelNote}</p>{current.source && <a href={current.source.url} target="_blank" rel="noreferrer">{current.source.title}</a>}</details>}
             {currentStep === lesson.steps.length - 1 ? (
               <>
                 <div className="qa-takeaways">

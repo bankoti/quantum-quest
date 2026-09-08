@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react'
+import { useContext, useEffect, useRef } from 'react'
+import { animateCanvas, CanvasAnimationContext } from './canvasAnimation'
 import { MatterScene } from './matterLessons'
 
 interface Props {
@@ -19,6 +20,7 @@ const ELEMENTS = [
 
 export function MatterCanvas({ scene, value, mode, hits, active, pulse, accent }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const animation = useContext(CanvasAnimationContext)
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -27,9 +29,6 @@ export function MatterCanvas({ scene, value, mode, hits, active, pulse, accent }
 
     let width = 1
     let height = 1
-    let animationFrame = 0
-    let frame = 0
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
     const resize = () => {
       const bounds = canvas.getBoundingClientRect()
@@ -519,7 +518,6 @@ export function MatterCanvas({ scene, value, mode, hits, active, pulse, accent }
     }
 
     const render = (time: number) => {
-      frame += 1
       grid()
       if (scene === 'box-boundary' || scene === 'box-modes') drawBox(time)
       else if (scene === 'box-energy') drawBox(time, true)
@@ -540,20 +538,10 @@ export function MatterCanvas({ scene, value, mode, hits, active, pulse, accent }
       else if (scene === 'periodic-builder') drawPeriodicBuilder()
       else if (scene === 'matter-complete') drawComplete(time)
       else drawCheck(time)
-      if (!reducedMotion || frame < 2) animationFrame = requestAnimationFrame(render)
     }
 
-    resize()
-    const observer = new ResizeObserver(() => {
-      if (resize()) render(performance.now())
-    })
-    observer.observe(canvas)
-    render(performance.now())
-    return () => {
-      cancelAnimationFrame(animationFrame)
-      observer.disconnect()
-    }
-  }, [accent, active, hits, mode, pulse, scene, value])
+    return animateCanvas(canvas, resize, render, animation)
+  }, [accent, active, animation, hits, mode, pulse, scene, value])
 
   return <canvas ref={canvasRef} className="qa-canvas" aria-label={`Animated ${scene.replace(/-/g, ' ')} atoms-and-matter model`} />
 }

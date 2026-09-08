@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react'
+import { useContext, useEffect, useRef } from 'react'
+import { animateCanvas, CanvasAnimationContext } from './canvasAnimation'
 import { FoundationScene } from './foundationLessons'
 
 interface Props {
@@ -24,6 +25,7 @@ export function sampleBands(phase = 0): number {
 
 export function FoundationCanvas({ scene, value, mode, hits, active, pulse, accent }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const animation = useContext(CanvasAnimationContext)
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -32,9 +34,6 @@ export function FoundationCanvas({ scene, value, mode, hits, active, pulse, acce
 
     let width = 1
     let height = 1
-    let frame = 0
-    let animationFrame = 0
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
     const resize = () => {
       const bounds = canvas.getBoundingClientRect()
@@ -399,7 +398,6 @@ export function FoundationCanvas({ scene, value, mode, hits, active, pulse, acce
     }
 
     const render = (time: number) => {
-      frame += 1
       grid()
       if (scene === 'particle-motion') drawParticle(time)
       else if (scene === 'wave-motion') drawWave(time)
@@ -417,18 +415,10 @@ export function FoundationCanvas({ scene, value, mode, hits, active, pulse, acce
       else if (scene === 'foundation-map') drawFoundationMap(time)
       else if (scene === 'stage-complete') drawFoundationMap(time, true)
       else drawCheck(time)
-      if (!reducedMotion || frame < 2) animationFrame = requestAnimationFrame(render)
     }
 
-    resize()
-    const observer = new ResizeObserver(resize)
-    observer.observe(canvas)
-    animationFrame = requestAnimationFrame(render)
-    return () => {
-      cancelAnimationFrame(animationFrame)
-      observer.disconnect()
-    }
-  }, [accent, active, hits, mode, pulse, scene, value])
+    return animateCanvas(canvas, resize, render, animation)
+  }, [accent, active, animation, hits, mode, pulse, scene, value])
 
   return <canvas ref={canvasRef} className="qa-canvas" aria-label={`Animated ${scene.replace(/-/g, ' ')} experiment`} />
 }

@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { QuantumCanvas, QuantumScene, sampleInterference } from './QuantumCanvas'
-import { getSavedStep, markLessonCompleted, saveStep } from './progress'
+import { getSavedStep, markLessonCompleted, readLessonSession, saveLessonSession, saveStep } from './progress'
+import { LessonVisual } from './LessonVisual'
+import { AnswerOptions } from './AnswerOptions'
 import './quantum.css'
 
 const LESSON_SLUG = 'the-quantum-rules-change'
@@ -18,25 +20,47 @@ const steps: { label: string; scene: QuantumScene }[] = [
 
 const scaleNames = ['You', 'A hair', 'A cell', 'An atom', 'An electron']
 
+type FirstSession = {
+  step: number; scaleIndex: number; dualityMode: 'particle' | 'wave'; photonHits: number[];
+  observed: boolean; measurement: 'left' | 'right' | null; answer: number | null; answerState: 'idle' | 'correct' | 'wrong';
+}
+
+function restoreSession(): FirstSession {
+  const saved = readLessonSession(LESSON_SLUG) as Partial<FirstSession> | null
+  const step = getSavedStep(LESSON_SLUG)
+  const replay = step >= steps.length - 1
+  const state = !replay && saved && typeof saved === 'object' ? saved : {}
+  const answer = Number.isInteger(state.answer) && Number(state.answer) >= 0 && Number(state.answer) < 3 ? Number(state.answer) : null
+  return {
+    step: replay ? 0 : step,
+    scaleIndex: Number.isInteger(state.scaleIndex) && Number(state.scaleIndex) >= 0 && Number(state.scaleIndex) <= 4 ? Number(state.scaleIndex) : 0,
+    dualityMode: state.dualityMode === 'wave' ? 'wave' : 'particle',
+    photonHits: Array.isArray(state.photonHits) ? state.photonHits.filter(hit => Number.isFinite(hit) && hit >= 0 && hit <= 1).slice(-240) : [],
+    observed: state.observed === true,
+    measurement: state.measurement === 'left' || state.measurement === 'right' ? state.measurement : null,
+    answer, answerState: state.answerState === 'correct' && answer === 1 ? 'correct' : 'idle',
+  }
+}
+
 export function QuantumLessonPage() {
   const navigate = useNavigate()
-  const [step, setStep] = useState(0)
-  const [scaleIndex, setScaleIndex] = useState(0)
-  const [dualityMode, setDualityMode] = useState<'particle' | 'wave'>('particle')
-  const [photonHits, setPhotonHits] = useState<number[]>([])
-  const [observed, setObserved] = useState(false)
-  const [measurement, setMeasurement] = useState<'left' | 'right' | null>(null)
-  const [answer, setAnswer] = useState<number | null>(null)
-  const [answerState, setAnswerState] = useState<'idle' | 'correct' | 'wrong'>('idle')
+  const [initial] = useState(restoreSession)
+  const [step, setStep] = useState(initial.step)
+  const [scaleIndex, setScaleIndex] = useState(initial.scaleIndex)
+  const [dualityMode, setDualityMode] = useState(initial.dualityMode)
+  const [photonHits, setPhotonHits] = useState(initial.photonHits)
+  const [observed, setObserved] = useState(initial.observed)
+  const [measurement, setMeasurement] = useState(initial.measurement)
+  const [answer, setAnswer] = useState(initial.answer)
+  const [answerState, setAnswerState] = useState(initial.answerState)
 
   useEffect(() => {
-    const saved = getSavedStep(LESSON_SLUG)
-    if (saved > 0 && saved < steps.length - 1) setStep(saved)
-  }, [])
+    saveLessonSession(LESSON_SLUG, { step, scaleIndex, dualityMode, photonHits, observed, measurement, answer, answerState })
+  }, [step, scaleIndex, dualityMode, photonHits, observed, measurement, answer, answerState])
 
   useEffect(() => {
     saveStep(LESSON_SLUG, step)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    window.scrollTo({ top: 0, behavior: 'instant' })
   }, [step])
 
   const firePhotons = useCallback((count: number) => {
@@ -80,8 +104,8 @@ export function QuantumLessonPage() {
         <p className="qa-lesson-lede">A classical particle follows one path. A classical wave spreads across many paths. Quantum objects produce evidence of both.</p>
         <p>Switch the picture. Neither one alone describes an electron or photon completely. The quantum state predicts possibilities; a detector records one event.</p>
         <div className="qa-segmented" role="group" aria-label="Choose a classical picture">
-          <button className={dualityMode === 'particle' ? 'active' : ''} onClick={() => setDualityMode('particle')}><span aria-hidden="true">●</span> Particle</button>
-          <button className={dualityMode === 'wave' ? 'active' : ''} onClick={() => setDualityMode('wave')}><span aria-hidden="true">∿</span> Wave</button>
+          <button aria-pressed={dualityMode === 'particle'} className={dualityMode === 'particle' ? 'active' : ''} onClick={() => setDualityMode('particle')}><span aria-hidden="true">●</span> Particle</button>
+          <button aria-pressed={dualityMode === 'wave'} className={dualityMode === 'wave' ? 'active' : ''} onClick={() => setDualityMode('wave')}><span aria-hidden="true">∿</span> Wave</button>
         </div>
         <aside className="qa-insight"><span aria-hidden="true">✦</span><span><strong>Key idea:</strong> “Wave-particle duality” means the classical categories are incomplete, not that a tiny object keeps changing costumes.</span></aside>
       </>
@@ -140,13 +164,7 @@ export function QuantumLessonPage() {
           <p className="qa-eyebrow">Concept check</p>
           <h1>What did the dots teach us?</h1>
           <p className="qa-lesson-lede">Choose the statement that best matches the double-slit experiment.</p>
-          <div className="qa-answer-list" role="radiogroup" aria-label="Concept check answers">
-            {options.map((option, index) => (
-              <button key={option} role="radio" aria-checked={answer === index} className={`${answer === index ? 'selected' : ''} ${answerState === 'correct' && index === 1 ? 'correct' : ''}`} onClick={() => { setAnswer(index); setAnswerState('idle') }}>
-                <span className="qa-answer-marker">{String.fromCharCode(65 + index)}</span><span>{option}</span>{answerState === 'correct' && index === 1 && <span aria-hidden="true">✓</span>}
-              </button>
-            ))}
-          </div>
+          <AnswerOptions label="Concept check answers" options={options} answer={answer} correct={1} state={answerState} onAnswer={index => { setAnswer(index); setAnswerState('idle') }} />
           <button className="qa-primary" disabled={answer === null} onClick={checkAnswer}>Check answer →</button>
           <p className={`qa-feedback ${answerState}`} aria-live="polite">{answerState === 'wrong' ? 'Not quite. Focus on the difference between one detection and many detections.' : answerState === 'correct' ? 'Exactly. Quantum theory predicts the pattern, not the location of one photon.' : ''}</p>
         </>
@@ -183,10 +201,9 @@ export function QuantumLessonPage() {
       </header>
 
       <main className="qa-player-main">
-        <section className="qa-visual-panel">
-          <div className="qa-visual-caption"><span>Live model</span><strong>{steps[step].label}</strong></div>
+        <LessonVisual label={steps[step].label}>
           <QuantumCanvas scene={steps[step].scene} scaleIndex={scaleIndex} dualityMode={dualityMode} photonHits={photonHits} observed={observed} measurement={measurement} />
-        </section>
+        </LessonVisual>
         <section className="qa-lesson-copy">
           <div className="qa-copy-inner">{content}</div>
           {step < 5 && <div className="qa-lesson-nav"><span>{step + 1}/{steps.length - 1}</span><button className="qa-primary" disabled={!canContinue} onClick={next}>Continue →</button></div>}

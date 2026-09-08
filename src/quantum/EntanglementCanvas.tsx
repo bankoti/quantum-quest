@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react'
+import { useContext, useEffect, useRef } from 'react'
+import { animateCanvas, CanvasAnimationContext } from './canvasAnimation'
 import { EntanglementScene } from './entanglementLessons'
 
 interface Props {
@@ -13,6 +14,7 @@ interface Props {
 
 export function EntanglementCanvas({ scene, value, mode, hits, active, pulse, accent }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const animation = useContext(CanvasAnimationContext)
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -21,9 +23,6 @@ export function EntanglementCanvas({ scene, value, mode, hits, active, pulse, ac
 
     let width = 1
     let height = 1
-    let animationFrame = 0
-    let frame = 0
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
     const resize = () => {
       const bounds = canvas.getBoundingClientRect()
@@ -492,7 +491,6 @@ export function EntanglementCanvas({ scene, value, mode, hits, active, pulse, ac
     }
 
     const render = (time: number) => {
-      frame += 1
       grid()
       if (scene === 'pair-register') drawPair()
       else if (scene === 'joint-probabilities') drawJointTable()
@@ -511,20 +509,10 @@ export function EntanglementCanvas({ scene, value, mode, hits, active, pulse, ac
       else if (scene === 'cat-environment') drawCatEnvironment(time)
       else if (scene === 'entanglement-complete') drawComplete(time)
       else drawCheck(time)
-      if (!reducedMotion || frame < 2) animationFrame = requestAnimationFrame(render)
     }
 
-    resize()
-    const observer = new ResizeObserver(() => {
-      if (resize()) render(performance.now())
-    })
-    observer.observe(canvas)
-    render(performance.now())
-    return () => {
-      cancelAnimationFrame(animationFrame)
-      observer.disconnect()
-    }
-  }, [accent, active, hits, mode, pulse, scene, value])
+    return animateCanvas(canvas, resize, render, animation)
+  }, [accent, active, animation, hits, mode, pulse, scene, value])
 
   return <canvas ref={canvasRef} className="qa-canvas" aria-label={`Animated ${scene.replace(/-/g, ' ')} entanglement model`} />
 }

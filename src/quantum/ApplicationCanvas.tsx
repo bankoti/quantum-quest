@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react'
+import { useContext, useEffect, useRef } from 'react'
+import { animateCanvas, CanvasAnimationContext } from './canvasAnimation'
 import { ApplicationScene } from './applicationLessons'
 
 interface Props {
@@ -13,6 +14,7 @@ interface Props {
 
 export function ApplicationCanvas({ scene, value, mode, hits, active, pulse, accent }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const animation = useContext(CanvasAnimationContext)
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -21,9 +23,6 @@ export function ApplicationCanvas({ scene, value, mode, hits, active, pulse, acc
 
     let width = 1
     let height = 1
-    let animationFrame = 0
-    let frame = 0
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
     const resize = () => {
       const bounds = canvas.getBoundingClientRect()
@@ -37,11 +36,6 @@ export function ApplicationCanvas({ scene, value, mode, hits, active, pulse, acc
       canvas.height = nextHeight
       context.setTransform(ratio, 0, 0, ratio, 0, 0)
       return true
-    }
-
-    const hash = (seed: number) => {
-      const raw = Math.sin(seed * 127.1 + 311.7) * 43758.5453
-      return raw - Math.floor(raw)
     }
 
     const dot = (x: number, y: number, radius: number, color: string, alpha = 1) => {
@@ -70,7 +64,8 @@ export function ApplicationCanvas({ scene, value, mode, hits, active, pulse, acc
       context.fillStyle = color
       context.font = `650 ${size}px ui-monospace, SFMono-Regular, Menlo, monospace`
       context.textAlign = align
-      context.fillText(text, x, y)
+      const available = align === 'center' ? 2 * Math.min(x, width - x) : align === 'right' ? x : width - x
+      context.fillText(text, x, y, Math.max(1, available - 20))
     }
 
     const grid = () => {
@@ -269,17 +264,17 @@ export function ApplicationCanvas({ scene, value, mode, hits, active, pulse, acc
 
     const drawSpinEnsemble = (time: number) => {
       const strength = value / 100
-      const columns = 7
-      const rows = 5
+      const columns = 6
+      const rows = 6
       const startX = width * 0.2
       const startY = height * 0.28
       const dx = width * 0.1
-      const dy = height * 0.115
+      const dy = height * 0.085
       let up = 0
       for (let row = 0; row < rows; row += 1) {
         for (let column = 0; column < columns; column += 1) {
           const index = row * columns + column
-          const biased = hash(index * 3.7) < 0.5 + strength * 0.16
+          const biased = (index * 13) % 36 < 18 + Math.round(strength * 3)
           if (biased) up += 1
           const x = startX + column * dx
           const y = startY + row * dy
@@ -287,10 +282,11 @@ export function ApplicationCanvas({ scene, value, mode, hits, active, pulse, acc
         }
       }
       const vector = strength * height * 0.22
-      arrow(width * 0.88, height * 0.66, width * 0.88, height * 0.66 - vector, '#fbbf24', 5)
+      if (vector > 0) arrow(width * 0.88, height * 0.66, width * 0.88, height * 0.66 - vector, '#fbbf24', 5)
+      else dot(width * 0.88, height * 0.66, 3, '#fbbf24')
       label('NET M', width * 0.88, height * 0.7, '#fbbf24', 'center')
       label(`FIELD STRENGTH ${value}`, width / 2, 31, accent, 'center', 13)
-      label(`${up} LOWER / ${columns * rows - up} UPPER`, width / 2, height * 0.93, '#d1d5db', 'center')
+      label(`${up} LOWER / ${columns * rows - up} UPPER (EXAGGERATED)`, width / 2, height * 0.93, '#d1d5db', 'center')
       line(width * 0.12, height * 0.16, width * 0.12, height * 0.84, '#374151', 3)
       for (let y = height * 0.2; y < height * 0.82; y += 28) arrow(width * 0.12, y + 10, width * 0.12, y - 10, '#fbbf24', 1.5)
       void time
@@ -390,7 +386,7 @@ export function ApplicationCanvas({ scene, value, mode, hits, active, pulse, acc
       const angle = value / 100 * Math.PI
       const cx = width / 2
       const cy = height * 0.53
-      const radius = Math.min(width, height) * 0.31
+      const radius = Math.min(width * 0.31, Math.max(24, (height - 115) / 2))
       context.beginPath()
       context.arc(cx, cy, radius, 0, Math.PI * 2)
       context.strokeStyle = '#a78bfa'
@@ -401,8 +397,8 @@ export function ApplicationCanvas({ scene, value, mode, hits, active, pulse, acc
       context.strokeStyle = '#374151'
       context.stroke()
       line(cx, cy - radius, cx, cy + radius, '#4b5563')
-      const x = cx + Math.sin(angle) * radius * 0.82
-      const y = cy - Math.cos(angle) * radius * 0.82
+      const x = cx + Math.sin(angle) * radius
+      const y = cy - Math.cos(angle) * radius
       arrow(cx, cy, x, y, '#fbbf24', 5)
       glow(x, y, 34, '#fbbf24')
       dot(x, y, 8, '#fbbf24')
@@ -416,15 +412,16 @@ export function ApplicationCanvas({ scene, value, mode, hits, active, pulse, acc
     const drawHistogram = (title: string) => {
       const zeros = hits.filter(hit => hit === 0).length
       const ones = hits.length - zeros
-      const max = Math.max(1, zeros, ones)
+      const total = Math.max(1, hits.length)
       const base = height * 0.8
       const maxHeight = height * 0.47
+      const barWidth = Math.min(110, width * 0.24)
       ;[{ x: width * 0.35, count: zeros, text: '0', color: '#22d3ee' }, { x: width * 0.65, count: ones, text: '1', color: '#fb7185' }].forEach(bar => {
-        const h = bar.count / max * maxHeight
+        const h = bar.count / total * maxHeight
         context.fillStyle = `${bar.color}33`
-        context.fillRect(bar.x - 55, base - h, 110, h)
-        line(bar.x - 55, base - h, bar.x + 55, base - h, bar.color, 5)
-        label(String(bar.count), bar.x, base - h - 14, bar.color, 'center', 16)
+        context.fillRect(bar.x - barWidth / 2, base - h, barWidth, h)
+        line(bar.x - barWidth / 2, base - h, bar.x + barWidth / 2, base - h, bar.color, 5)
+        label(`${bar.count} (${Math.round(bar.count / total * 100)}%)`, bar.x, base - h - 14, bar.color, 'center', 12)
         label(bar.text, bar.x, base + 30, bar.color, 'center', 15)
       })
       line(width * 0.2, base, width * 0.8, base, '#4b5563')
@@ -438,9 +435,9 @@ export function ApplicationCanvas({ scene, value, mode, hits, active, pulse, acc
     }
 
     const drawGate = (time: number) => {
-      const cx = width * 0.68
+      const cx = width * 0.65
       const cy = height * 0.53
-      const radius = Math.min(width, height) * 0.26
+      const radius = Math.min(width * 0.25, Math.max(24, (height - 110) / 2))
       context.beginPath()
       context.arc(cx, cy, radius, 0, Math.PI * 2)
       context.strokeStyle = '#374151'
@@ -449,15 +446,22 @@ export function ApplicationCanvas({ scene, value, mode, hits, active, pulse, acc
       line(cx, cy - radius, cx, cy + radius, '#4b5563')
       line(cx - radius, cy, cx + radius, cy, '#4b5563')
       const target = gateEndpoint()
-      const progress = (Math.sin(time * 0.002) + 1) / 2
-      const x = cx + target.x * radius * 0.8 * progress
-      const y = cy - radius * 0.8 + (target.y + 1) * radius * 0.8 * progress
+      const x = cx + target.x * radius
+      const y = cy + target.y * radius
+      arrow(cx, cy, cx, cy - radius, '#6b7280', 2)
+      glow(x, y, 16 + Math.sin(time * 0.002) * 3, '#fbbf24')
       arrow(cx, cy, x, y, '#fbbf24', 5)
-      panel(width * 0.12, cy - 48, 96, 96, '#171130', '#a78bfa')
-      label(mode.toUpperCase(), width * 0.12 + 48, cy + 13, '#c084fc', 'center', 32)
-      arrow(width * 0.12 + 108, cy, cx - radius - 20, cy, '#a78bfa', 3)
+      const gateSize = Math.min(80, width * 0.16)
+      const gateX = width * 0.14
+      panel(gateX, cy - gateSize / 2, gateSize, gateSize, '#171130', '#a78bfa')
+      label(mode.toUpperCase(), gateX + gateSize / 2, cy + 8, '#c084fc', 'center', 24)
+      label('|0> input', gateX + gateSize / 2, cy + gateSize / 2 + 24, '#9ca3af', 'center')
+      arrow(gateX + gateSize + 8, cy, cx - radius - 12, cy, '#a78bfa', 2)
+      label('|0>', cx, cy - radius - 14, '#9ca3af', 'center')
+      label('|1>', cx, cy + radius + 20, '#9ca3af', 'center')
+      label('|+>', cx + radius + 20, cy + 4, '#9ca3af', 'center')
       label(`${mode.toUpperCase()} GATE TRANSFORM`, width / 2, 31, accent, 'center', 13)
-      label(target.label, cx, cy + radius + 34, '#d1d5db', 'center')
+      label(`OUTPUT ${target.label}`, width / 2, height * 0.95, '#fbbf24', 'center')
     }
 
     const circuitGates = () => mode === 'hzh' ? ['H', 'Z', 'H'] : ['H', 'H']
@@ -543,7 +547,7 @@ export function ApplicationCanvas({ scene, value, mode, hits, active, pulse, acc
       const errors = hits.filter(hit => hit === 1).length
       const rate = hits.length ? errors / hits.length : 0
       const columns = 20
-      const rows = 5
+      const rows = 6
       const left = width * 0.14
       const top = height * 0.25
       const dx = width * 0.72 / (columns - 1)
@@ -551,7 +555,7 @@ export function ApplicationCanvas({ scene, value, mode, hits, active, pulse, acc
       for (let index = 0; index < Math.min(hits.length, columns * rows); index += 1) {
         const column = index % columns
         const row = Math.floor(index / columns)
-        dot(left + column * dx, top + row * dy, 5, hits[index] ? '#fb7185' : '#34d399')
+        dot(left + column * dx, top + row * dy, Math.min(5, dx * 0.34), hits[index] ? '#fb7185' : '#34d399')
       }
       const meterLeft = width * 0.2
       const meterRight = width * 0.8
@@ -559,10 +563,10 @@ export function ApplicationCanvas({ scene, value, mode, hits, active, pulse, acc
       line(meterLeft, meterY, meterRight, meterY, '#374151', 12)
       const thresholdX = meterLeft + (meterRight - meterLeft) * 0.11
       line(meterLeft, meterY, meterLeft + (meterRight - meterLeft) * Math.min(1, rate), meterY, rate > 0.11 ? '#fb7185' : '#34d399', 12)
-      line(thresholdX, meterY - 24, thresholdX, meterY + 24, '#fbbf24', 3)
-      label('ERROR ALARM', thresholdX, meterY + 47, '#fbbf24', 'center', 9)
-      label(hits.length ? `${errors} ERRORS / ${hits.length} SIFTED BITS = ${Math.round(rate * 100)}%` : 'TRANSMIT AND SIFT A KEY', width / 2, 31, rate > 0.11 ? '#fb7185' : '#34d399', 'center', 13)
-      label(rate > 0.11 ? 'ABORT: DISTURBANCE DETECTED' : hits.length ? 'LOW ERROR: CONTINUE POST-PROCESSING' : 'green = agreement / coral = error', width / 2, height * 0.93, rate > 0.11 ? '#fb7185' : '#d1d5db', 'center')
+      line(thresholdX, meterY - 10, thresholdX, meterY + 10, '#fbbf24', 3)
+      label('ILLUSTRATIVE 11% ALARM', width / 2, height * 0.72, '#fbbf24', 'center', 9)
+      label(hits.length ? `${errors} ERRORS / ${hits.length} TEST BITS = ${Math.round(rate * 100)}%` : 'COMPARE A PUBLIC TEST SAMPLE', width / 2, 31, rate > 0.11 ? '#fb7185' : '#34d399', 'center', 13)
+      label(rate > 0.11 ? 'ABORT: DISTURBANCE DETECTED' : hits.length ? 'LOW ERROR: FURTHER CHECKS NEEDED' : 'green = agreement / coral = error', width / 2, height * 0.93, rate > 0.11 ? '#fb7185' : '#d1d5db', 'center')
     }
 
     const drawCheck = (time: number) => {
@@ -600,7 +604,6 @@ export function ApplicationCanvas({ scene, value, mode, hits, active, pulse, acc
     }
 
     const render = (time: number) => {
-      frame += 1
       grid()
       if (scene === 'laser-pump') drawLaserPump(time)
       else if (scene === 'laser-inversion') drawInversion()
@@ -622,20 +625,10 @@ export function ApplicationCanvas({ scene, value, mode, hits, active, pulse, acc
       else if (scene === 'qkd-key') drawQkdKey()
       else if (scene === 'applications-complete') drawComplete(time)
       else drawCheck(time)
-      if (!reducedMotion || frame < 2) animationFrame = requestAnimationFrame(render)
     }
 
-    resize()
-    const observer = new ResizeObserver(() => {
-      if (resize()) render(performance.now())
-    })
-    observer.observe(canvas)
-    render(performance.now())
-    return () => {
-      cancelAnimationFrame(animationFrame)
-      observer.disconnect()
-    }
-  }, [accent, active, hits, mode, pulse, scene, value])
+    return animateCanvas(canvas, resize, render, animation)
+  }, [accent, active, animation, hits, mode, pulse, scene, value])
 
   return <canvas ref={canvasRef} className="qa-canvas" aria-label={`Animated ${scene.replace(/-/g, ' ')} quantum-application model`} />
 }

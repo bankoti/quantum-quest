@@ -2,14 +2,16 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { lessonPath, PLAYABLE_LESSONS, QUANTUM_LESSON_COUNT, QUANTUM_STAGES, stageForLesson } from './curriculum'
-import { getCompletedLessons, getNextPlayableLesson } from './progress'
+import { getCompletedLessons, getNextPlayableLesson, getSavedStep } from './progress'
 import './quantum.css'
 
 export function QuantumHubPage() {
-  const [completed, setCompleted] = useState<string[]>([])
+  const [completed, setCompleted] = useState(getCompletedLessons)
 
   useEffect(() => {
-    setCompleted(getCompletedLessons())
+    const refresh = () => setCompleted(getCompletedLessons())
+    window.addEventListener('storage', refresh)
+    return () => window.removeEventListener('storage', refresh)
   }, [])
 
   const completeSet = new Set(completed)
@@ -32,7 +34,7 @@ export function QuantumHubPage() {
           <h1>Build a quantum universe you can actually see.</h1>
           <p>Start with ordinary intuition, break it carefully through experiments, then rebuild your understanding around states, probability, atoms, entanglement, and computation.</p>
           <Link className="qa-primary qa-large" to={nextPath}>{availableJourneyComplete ? 'Review the journey' : completed.length ? 'Continue your journey' : 'Start first journey'} <span aria-hidden="true">→</span></Link>
-          <div className="qa-hero-meta"><span>29 interactive lessons</span><span>100+ live models</span><span>No heavy math</span></div>
+          <div className="qa-hero-meta"><span>{PLAYABLE_LESSONS.length} interactive lessons</span><span>100+ live models</span><span>No heavy math</span></div>
         </motion.div>
         <div className="qa-atom-visual" aria-label="Animated atomic state model">
           <div className="qa-atom-core"><i /></div>
@@ -59,7 +61,7 @@ export function QuantumHubPage() {
       </section>
 
       <Link to={nextPath} className="qa-next">
-        <div className="qa-next-index"><span>{availableJourneyComplete ? 'Journey complete' : 'Recommended next'}</span><strong>{String(nextIndex + 1).padStart(2, '0')}</strong></div>
+        <div className="qa-next-index"><span>{availableJourneyComplete ? 'Available lessons complete' : getSavedStep(nextLesson.slug!) > 0 ? 'Pick up where you left off' : 'Recommended next'}</span><strong>{String(nextIndex + 1).padStart(2, '0')}</strong></div>
         <div><p className="qa-eyebrow">{nextStage?.shortTitle}</p><h2>{nextLesson.title}</h2><p>{nextLesson.description}</p></div>
         <span className="qa-next-action">{completeSet.has(nextLesson.slug!) ? 'Replay' : 'Begin'} →</span>
       </Link>
@@ -67,21 +69,23 @@ export function QuantumHubPage() {
       <div className="qa-curriculum">
         {QUANTUM_STAGES.map((stage, stageIndex) => {
           const previousLessons = QUANTUM_STAGES.slice(0, stageIndex).reduce((sum, item) => sum + item.lessons.length, 0)
+          const stageCompleted = stage.lessons.filter(lesson => lesson.slug && completeSet.has(lesson.slug)).length
           return (
             <section id={`quantum-stage-${stage.number}`} className="qa-stage" style={{ '--qa-stage': stage.accent } as React.CSSProperties} key={stage.number}>
               <div className="qa-stage-heading">
                 <div className="qa-stage-number"><span>Stage {stage.number}</span></div>
                 <div><h2>{stage.title}</h2><p>{stage.description}</p></div>
-                <span className="qa-stage-count">{stage.lessons.length} lessons</span>
+                <div className="qa-stage-count"><span>{stageCompleted}/{stage.lessons.length} complete</span><progress value={stageCompleted} max={stage.lessons.length} aria-label={`${stage.shortTitle} progress`} /></div>
               </div>
               <div className="qa-lesson-grid">
                 {stage.lessons.map((lesson, lessonIndex) => {
                   const number = String(previousLessons + lessonIndex + 1).padStart(2, '0')
                   const lessonComplete = Boolean(lesson.slug && completeSet.has(lesson.slug))
+                  const inProgress = Boolean(lesson.slug && !lessonComplete && getSavedStep(lesson.slug) > 0)
                   if (lesson.playable && lesson.slug) {
                     return (
                       <Link className="qa-lesson-card qa-playable" key={lesson.title} to={lessonPath(lesson.slug)}>
-                        <div className="qa-card-top"><span>{lessonComplete ? '✓' : number}</span><span className="qa-status">{lessonComplete ? 'Complete' : 'Available'}</span></div>
+                        <div className="qa-card-top"><span>{lessonComplete ? '✓' : number}</span><span className="qa-status">{lessonComplete ? 'Complete' : inProgress ? 'In progress' : 'Available'}</span></div>
                         <h3>{lesson.title}</h3><p>{lesson.description}</p>
                         <div className="qa-card-meta"><span>{lesson.minutes} min</span><span>→</span></div>
                       </Link>

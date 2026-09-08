@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react'
+import { useContext, useEffect, useRef } from 'react'
+import { animateCanvas, CanvasAnimationContext } from './canvasAnimation'
 import { LanguageScene } from './languageLessons'
 
 interface Props {
@@ -13,6 +14,7 @@ interface Props {
 
 export function LanguageCanvas({ scene, value, mode, hits, active, pulse, accent }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const animation = useContext(CanvasAnimationContext)
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -21,9 +23,6 @@ export function LanguageCanvas({ scene, value, mode, hits, active, pulse, accent
 
     let width = 1
     let height = 1
-    let frame = 0
-    let animationFrame = 0
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
     const resize = () => {
       const bounds = canvas.getBoundingClientRect()
@@ -442,7 +441,6 @@ export function LanguageCanvas({ scene, value, mode, hits, active, pulse, accent
     }
 
     const render = (time: number) => {
-      frame += 1
       grid()
       if (scene === 'wavefunction-map') drawWavefunctionMap(time)
       else if (scene === 'born-rule') drawBornRule(time)
@@ -464,18 +462,10 @@ export function LanguageCanvas({ scene, value, mode, hits, active, pulse, accent
       else if (scene === 'equation-predict') drawPrediction(time)
       else if (scene === 'language-complete') drawLanguageComplete(time)
       else drawCheck(time)
-      if (!reducedMotion || frame < 2) animationFrame = requestAnimationFrame(render)
     }
 
-    resize()
-    const observer = new ResizeObserver(resize)
-    observer.observe(canvas)
-    render(performance.now())
-    return () => {
-      cancelAnimationFrame(animationFrame)
-      observer.disconnect()
-    }
-  }, [accent, active, hits, mode, pulse, scene, value])
+    return animateCanvas(canvas, resize, render, animation)
+  }, [accent, active, animation, hits, mode, pulse, scene, value])
 
   return <canvas ref={canvasRef} className="qa-canvas" aria-label={`Animated ${scene.replace(/-/g, ' ')} quantum-language model`} />
 }
